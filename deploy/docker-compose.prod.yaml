@@ -1,0 +1,86 @@
+services:
+  base: &base
+    image: chatwoot-welucci:latest
+    env_file: .env
+    restart: always
+    volumes:
+      - storage:/app/storage
+    networks:
+      - chatwoot_internal
+
+  rails:
+    <<: *base
+    container_name: chatwoot-rails
+    depends_on:
+      - postgres
+      - redis
+    entrypoint: docker/entrypoints/rails.sh
+    command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - chatwoot_internal
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.chatwoot.rule=Host(`chatwoot.srv1779041.hstgr.cloud`)"
+      - "traefik.http.routers.chatwoot.entrypoints=web,websecure"
+      - "traefik.http.routers.chatwoot.tls=true"
+      - "traefik.http.routers.chatwoot.tls.certresolver=mytlschallenge"
+      - "traefik.http.routers.chatwoot.middlewares=chatwoot@docker"
+      - "traefik.http.services.chatwoot.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.chatwoot.headers.SSLRedirect=true"
+      - "traefik.http.middlewares.chatwoot.headers.SSLHost=chatwoot.srv1779041.hstgr.cloud"
+      - "traefik.http.middlewares.chatwoot.headers.STSSeconds=315360000"
+      - "traefik.http.middlewares.chatwoot.headers.STSIncludeSubdomains=true"
+      - "traefik.http.middlewares.chatwoot.headers.STSPreload=true"
+      - "traefik.http.middlewares.chatwoot.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.chatwoot.headers.browserXSSFilter=true"
+      - "traefik.http.middlewares.chatwoot.headers.contentTypeNosniff=true"
+      - "traefik.docker.network=n8n_default"
+
+  sidekiq:
+    <<: *base
+    container_name: chatwoot-sidekiq
+    depends_on:
+      - postgres
+      - redis
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+    networks:
+      - chatwoot_internal
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: chatwoot-postgres
+    restart: always
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=chatwoot
+      - POSTGRES_USER=chatwoot
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    networks:
+      - chatwoot_internal
+
+  redis:
+    image: redis:7-alpine
+    container_name: chatwoot-redis
+    restart: always
+    command: ["sh", "-c", "redis-server --requirepass \"$REDIS_PASSWORD\""]
+    env_file: .env
+    volumes:
+      - redis:/data
+    networks:
+      - chatwoot_internal
+
+volumes:
+  storage:
+  postgres:
+  redis:
+
+networks:
+  chatwoot_internal:
+    driver: bridge
+  traefik:
+    external: true
+    name: n8n_default
