@@ -283,6 +283,15 @@ Rails.application.routes.draw do
           end
           resources :labels, only: [:index, :show, :create, :update, :destroy]
 
+          resources :task_boards, only: [:index, :show, :create, :update, :destroy] do
+            resources :task_columns, only: [:create, :update, :destroy], module: :task_boards
+          end
+          resources :tasks, only: [:index, :show, :create, :update, :destroy] do
+            member do
+              patch :move
+            end
+          end
+
           resources :notifications, only: [:index, :update, :destroy] do
             collection do
               post :read_all

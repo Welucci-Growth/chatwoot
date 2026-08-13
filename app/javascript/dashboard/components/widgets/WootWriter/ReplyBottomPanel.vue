@@ -11,10 +11,16 @@ import VideoCallButton from '../VideoCallButton.vue';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import { mapGetters } from 'vuex';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import ConversationTaskButton from 'dashboard/components/widgets/conversation/ConversationTaskButton.vue';
 
 export default {
   name: 'ReplyBottomPanel',
-  components: { NextButton, FileUpload, VideoCallButton },
+  components: {
+    NextButton,
+    FileUpload,
+    VideoCallButton,
+    ConversationTaskButton,
+  },
   mixins: [inboxMixin],
   props: {
     isNote: {
@@ -287,6 +293,7 @@ export default {
         sm
         @click="toggleEmojiPicker"
       />
+      <ConversationTaskButton v-if="!isNote" />
       <FileUpload
         v-if="showAttachButton"
         ref="uploadRef"

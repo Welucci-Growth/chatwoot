@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_17_180002) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1233,6 +1233,52 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
     t.index ["name"], name: "index_tags_on_name", unique: true
   end
 
+  create_table "task_boards", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "owner_id"
+    t.string "name", null: false
+    t.integer "visibility", default: 0, null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_task_boards_on_account_id"
+    t.index ["owner_id"], name: "index_task_boards_on_owner_id"
+  end
+
+  create_table "task_columns", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "task_board_id", null: false
+    t.string "name", null: false
+    t.string "color"
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_task_columns_on_account_id"
+    t.index ["task_board_id"], name: "index_task_columns_on_task_board_id"
+  end
+
+  create_table "tasks", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "task_board_id", null: false
+    t.bigint "task_column_id", null: false
+    t.bigint "assignee_id"
+    t.bigint "contact_id"
+    t.bigint "conversation_id"
+    t.string "title", null: false
+    t.text "description"
+    t.integer "position", default: 0, null: false
+    t.datetime "due_on"
+    t.jsonb "custom_attributes", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_tasks_on_account_id"
+    t.index ["assignee_id"], name: "index_tasks_on_assignee_id"
+    t.index ["contact_id"], name: "index_tasks_on_contact_id"
+    t.index ["conversation_id"], name: "index_tasks_on_conversation_id"
+    t.index ["task_board_id"], name: "index_tasks_on_task_board_id"
+    t.index ["task_column_id"], name: "index_tasks_on_task_column_id"
+  end
+
   create_table "team_members", force: :cascade do |t|
     t.bigint "team_id", null: false
     t.bigint "user_id", null: false
@@ -1346,6 +1392,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_11_184600) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "inboxes", "portals"
+  add_foreign_key "task_boards", "accounts"
+  add_foreign_key "task_boards", "users", column: "owner_id"
+  add_foreign_key "task_columns", "accounts"
+  add_foreign_key "task_columns", "task_boards"
+  add_foreign_key "tasks", "accounts"
+  add_foreign_key "tasks", "task_boards"
+  add_foreign_key "tasks", "task_columns"
+  add_foreign_key "tasks", "users", column: "assignee_id"
   add_foreign_key "user_sessions", "users"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").

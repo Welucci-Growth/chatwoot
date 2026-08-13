@@ -326,6 +326,13 @@ const menuItems = computed(() => {
       },
     },
     {
+      name: 'Tasks',
+      label: t('TASKS.HEADER'),
+      icon: 'i-lucide-list-todo',
+      to: accountScopedRoute('tasks_dashboard_index'),
+      activeOn: ['tasks_dashboard_index'],
+    },
+    {
       name: 'Conversation',
       label: t('SIDEBAR.CONVERSATIONS'),
       icon: 'i-lucide-message-circle',
