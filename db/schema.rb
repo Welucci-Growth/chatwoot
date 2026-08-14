@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_18_000000) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_14_000000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -144,6 +144,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_18_000000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_agent_capacity_policies_on_account_id"
+  end
+
+  create_table "agent_invites", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "inviter_id"
+    t.bigint "team_id"
+    t.integer "role", default: 0, null: false
+    t.string "token", null: false
+    t.boolean "enabled", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_agent_invites_on_account_id"
+    t.index ["inviter_id"], name: "index_agent_invites_on_inviter_id"
+    t.index ["team_id"], name: "index_agent_invites_on_team_id"
+    t.index ["token"], name: "index_agent_invites_on_token", unique: true
   end
 
   create_table "agent_sessions", force: :cascade do |t|
@@ -1546,6 +1561,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_18_000000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "agent_invites", "accounts"
+  add_foreign_key "agent_invites", "teams"
+  add_foreign_key "agent_invites", "users", column: "inviter_id"
   add_foreign_key "inboxes", "portals"
   add_foreign_key "task_boards", "accounts"
   add_foreign_key "task_boards", "users", column: "owner_id"

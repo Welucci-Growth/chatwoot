@@ -12,6 +12,7 @@ import {
 
 import AddAgent from './AddAgent.vue';
 import EditAgent from './EditAgent.vue';
+import InviteLinkModal from './InviteLinkModal.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -22,6 +23,7 @@ const { t } = useI18n();
 
 const loading = ref({});
 const showAddPopup = ref(false);
+const showInvitePopup = ref(false);
 const showDeletePopup = ref(false);
 const showEditPopup = ref(false);
 const agentAPI = ref({ message: '' });
@@ -167,6 +169,14 @@ const confirmDeletion = () => {
         </template>
         <template #actions>
           <Button
+            label="Convite por link"
+            icon="i-lucide-link"
+            variant="outline"
+            color="slate"
+            size="sm"
+            @click="showInvitePopup = true"
+          />
+          <Button
             :label="$t('AGENT_MGMT.HEADER_BTN_TXT')"
             size="sm"
             @click="openAddPopup"
@@ -279,6 +289,13 @@ const confirmDeletion = () => {
 
     <woot-modal v-model:show="showAddPopup" :on-close="hideAddPopup">
       <AddAgent @close="hideAddPopup" />
+    </woot-modal>
+
+    <woot-modal
+      v-model:show="showInvitePopup"
+      :on-close="() => (showInvitePopup = false)"
+    >
+      <InviteLinkModal @close="showInvitePopup = false" />
     </woot-modal>
 
     <woot-modal v-model:show="showEditPopup" :on-close="hideEditPopup">

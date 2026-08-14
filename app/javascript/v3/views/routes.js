@@ -7,6 +7,7 @@ import ResetPassword from './auth/reset/password/Index.vue';
 import Confirmation from './auth/confirmation/Index.vue';
 import VerifyEmail from './auth/verify-email/Index.vue';
 import PasswordEdit from './auth/password/Edit.vue';
+import WelucciInvite from './auth/welucci-invite/Index.vue';
 
 export default [
   {
@@ -73,5 +74,12 @@ export default [
     path: frontendURL('auth/reset/password'),
     name: 'auth_reset_password',
     component: ResetPassword,
+  },
+  {
+    path: frontendURL('auth/welucci-invite/:token'),
+    name: 'welucci_invite',
+    component: WelucciInvite,
+    meta: { ignoreSession: true },
+    props: route => ({ token: route.params.token }),
   },
 ];

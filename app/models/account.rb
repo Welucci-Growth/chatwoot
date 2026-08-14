@@ -94,6 +94,7 @@ class Account < ApplicationRecord
   has_many :notifications, dependent: :destroy_async
   has_many :portals, dependent: :destroy_async, class_name: '::Portal'
   has_many :sms_channels, dependent: :destroy_async, class_name: '::Channel::Sms'
+  has_many :agent_invites, dependent: :destroy_async
   has_many :task_boards, dependent: :destroy_async
   has_many :tasks, dependent: :destroy_async
   has_many :teams, dependent: :destroy_async

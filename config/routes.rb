@@ -307,6 +307,7 @@ Rails.application.routes.draw do
           end
           resources :labels, only: [:index, :show, :create, :update, :destroy]
 
+          resources :agent_invites, only: [:index, :create, :destroy]
           resources :task_boards, only: [:index, :show, :create, :update, :destroy] do
             resources :task_columns, only: [:create, :update, :destroy], module: :task_boards
           end
@@ -623,6 +624,11 @@ Rails.application.routes.draw do
         end
 
         resources :csat_survey, only: [:show, :update]
+        resources :agent_invites, param: :token, only: [:show] do
+          member do
+            post :accept
+          end
+        end
       end
     end
   end
