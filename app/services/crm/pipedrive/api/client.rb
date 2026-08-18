@@ -34,6 +34,15 @@ class Crm::Pipedrive::Api::Client
     paginated('/api/v2/activities', updated_since: updated_since)
   end
 
+  # Field dictionary: custom fields arrive keyed by hash, this maps them to their names.
+  def deal_fields
+    request(:get, '/v1/dealFields', query: { limit: 500 })
+  end
+
+  def deal(deal_id)
+    request(:get, "/api/v2/deals/#{deal_id}")
+  end
+
   def create_webhook(subscription_url:, event_object:, auth_user:, auth_password:)
     request(:post, '/v1/webhooks', body: {
               subscription_url: subscription_url,

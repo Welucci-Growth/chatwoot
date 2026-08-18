@@ -56,18 +56,27 @@ class Crm::Pipedrive::ProcessorService
       due_on: parse_date(deal['expected_close_date']),
       assignee_id: settings.dig('user_map', deal['owner_id'].to_s),
       contact_id: contact_for(deal['person_id'])&.id,
-      custom_attributes: {
-        'pipedrive' => {
-          'id' => external_id,
-          'type' => 'deal',
-          'deal_id' => deal['id'],
-          'pipeline_id' => deal['pipeline_id'],
-          'stage_id' => deal['stage_id'],
-          'person_id' => deal['person_id'],
-          'status' => deal['status'],
-          'url' => "#{crm_base_url}/deal/#{deal['id']}"
-        }
-      }
+      custom_attributes: { 'pipedrive' => deal_snapshot(deal, external_id) }
+    }
+  end
+
+  def deal_snapshot(deal, external_id)
+    {
+      'id' => external_id,
+      'type' => 'deal',
+      'deal_id' => deal['id'],
+      'pipeline_id' => deal['pipeline_id'],
+      'stage_id' => deal['stage_id'],
+      'person_id' => deal['person_id'],
+      'status' => deal['status'],
+      'origin' => deal['origin'],
+      'lost_reason' => deal['lost_reason'],
+      'expected_close_date' => deal['expected_close_date'],
+      'added_at' => deal['add_time'],
+      'stage_changed_at' => deal['stage_change_time'],
+      'amounts' => deal.slice('value', 'currency', 'mrr', 'arr', 'acv').compact_blank,
+      'fields' => filled_fields(deal),
+      'url' => "#{crm_base_url}/deal/#{deal['id']}"
     }
   end
 
@@ -91,6 +100,37 @@ class Crm::Pipedrive::ProcessorService
         }
       }
     }
+  end
+
+  # Most custom fields in the account are empty, so the card only carries the ones that
+  # are actually filled, named and ordered as they are in the CRM.
+  def filled_fields(deal)
+    values = deal['custom_fields'].presence || client.deal(deal['id'])['custom_fields']
+    return [] if values.blank?
+
+    Array(settings['deal_fields']).sort_by { |field| field['order'].to_i }.filter_map do |field|
+      label = field_value_label(field, values[field['key']])
+      { 'name' => field['name'], 'value' => label } if label.present?
+    end
+  end
+
+  def field_value_label(field, value)
+    case value
+    when nil, '' then nil
+    when Hash then hash_value_label(value)
+    when Array then value.map { |item| option_label(field, item) }.compact_blank.join(', ').presence
+    else option_label(field, value)
+    end
+  end
+
+  def hash_value_label(value)
+    return "#{value['currency']} #{value['value']}" if value['currency'].present?
+
+    value['label'] || value['formatted_address'] || value['value']
+  end
+
+  def option_label(field, value)
+    field['options']&.dig(value.to_s) || value.to_s
   end
 
   def deal_description(deal)

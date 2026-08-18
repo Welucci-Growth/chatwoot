@@ -9,16 +9,19 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import TaskCard from '../components/TaskCard.vue';
 import TaskDialog from '../components/TaskDialog.vue';
+import TaskDetailDialog from '../components/TaskDetailDialog.vue';
 
 const { t } = useI18n();
 const tasksStore = useTasksStore();
 
 const selectedBoardId = ref(null);
 const taskDialogRef = ref(null);
+const taskDetailDialogRef = ref(null);
 const newBoardDialogRef = ref(null);
 const columnNameInput = ref(null);
 
 const dialogContext = ref({ task: null, defaultColumnId: null });
+const detailContext = ref({ task: null, stageName: '' });
 const newBoard = ref({ name: '', visibility: 'personal' });
 
 const addingColumn = ref(false);
@@ -140,7 +143,15 @@ const openNewTask = column => {
   nextTick(() => taskDialogRef.value.open());
 };
 
-const openEditTask = task => {
+// Cards espelhados do Pipedrive abrem a visao de detalhe: o CRM e a fonte da verdade,
+// entao nao faz sentido oferecer o formulario de edicao neles.
+const openTask = (task, column) => {
+  if (task.customAttributes?.pipedrive) {
+    detailContext.value = { task, stageName: column?.name || '' };
+    nextTick(() => taskDetailDialogRef.value.open());
+    return;
+  }
+
   dialogContext.value = { task, defaultColumnId: task.taskColumnId };
   nextTick(() => taskDialogRef.value.open());
 };
@@ -343,7 +354,7 @@ const onDragChange = async (event, column) => {
               <template #item="{ element }">
                 <TaskCard
                   :task="element"
-                  @click="openEditTask(element)"
+                  @click="openTask(element, column)"
                   @delete="removeTask(element)"
                 />
               </template>
@@ -406,6 +417,13 @@ const onDragChange = async (event, column) => {
         </button>
       </div>
     </div>
+
+    <!-- Pipedrive card detail -->
+    <TaskDetailDialog
+      ref="taskDetailDialogRef"
+      :task="detailContext.task"
+      :stage-name="detailContext.stageName"
+    />
 
     <!-- Task create/edit dialog -->
     <TaskDialog

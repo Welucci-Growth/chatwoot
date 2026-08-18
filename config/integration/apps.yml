@@ -349,6 +349,7 @@ pipedrive:
           'board_ids': { 'type': 'object' },
           'stage_columns': { 'type': 'object' },
           'user_map': { 'type': 'object' },
+          'deal_fields': { 'type': 'array' },
         },
       'required': ['api_token', 'company_domain'],
       'additionalProperties': false,

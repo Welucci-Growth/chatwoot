@@ -15,6 +15,7 @@ class Crm::Pipedrive::SetupService
     remove_webhooks
     provision_boards
     map_users
+    map_deal_fields
     register_webhooks
     @hook.save!
   end
@@ -83,6 +84,27 @@ class Crm::Pipedrive::SetupService
       agent_id = agent_ids_by_email[user['email'].to_s.downcase]
       map[user['id'].to_s] = agent_id if agent_id.present?
     end
+  end
+
+  # Custom fields come keyed by a hash and mostly empty. We keep the dictionary (name,
+  # type, order and option labels) so the cards can render the filled ones by name.
+  def map_deal_fields
+    settings['deal_fields'] = client.deal_fields.filter_map do |field|
+      next unless custom_field?(field)
+
+      {
+        'key' => field['key'],
+        'name' => field['name'],
+        'type' => field['field_type'],
+        'order' => field['order_nr'],
+        'options' => Array(field['options']).to_h { |option| [option['id'].to_s, option['label']] }.presence
+      }.compact
+    end
+  end
+
+  # Pipedrive keys its custom fields with a 40 character hash; built in ones use plain names.
+  def custom_field?(field)
+    field['key'].to_s.length == 40
   end
 
   def register_webhooks

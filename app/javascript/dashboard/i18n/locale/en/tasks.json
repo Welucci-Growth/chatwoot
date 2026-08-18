@@ -46,6 +46,29 @@
       "LABELS": "Etiquetas",
       "LABELS_PLACEHOLDER": "Separadas por vírgula"
     },
-    "PIPEDRIVE_LINK": "Pipedrive"
+    "PIPEDRIVE_LINK": "Pipedrive",
+    "DETAIL": {
+      "SUMMARY": "Resumo",
+      "FIELDS": "Informações do negócio",
+      "VALUE": "Valor",
+      "MRR": "MRR",
+      "ARR": "ARR",
+      "ACV": "ACV",
+      "STAGE": "Etapa",
+      "CONTACT": "Contato",
+      "OWNER": "Responsável",
+      "ORIGIN": "Origem",
+      "EXPECTED_CLOSE": "Previsão de fechamento",
+      "STAGE_CHANGED": "Mudou de etapa em",
+      "CREATED": "Criado em",
+      "LOST_REASON": "Motivo da perda",
+      "OPEN_IN_CRM": "Abrir no Pipedrive",
+      "CLOSE": "Fechar",
+      "STATUS": {
+        "OPEN": "Em aberto",
+        "WON": "Ganho",
+        "LOST": "Perdido"
+      }
+    }
   }
 }
