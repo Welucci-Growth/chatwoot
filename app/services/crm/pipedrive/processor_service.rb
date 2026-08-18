@@ -123,6 +123,13 @@ class Crm::Pipedrive::ProcessorService
   def contact_for(person_id)
     return nil if person_id.blank?
 
+    @contacts_by_person_id ||= {}
+    return @contacts_by_person_id[person_id] if @contacts_by_person_id.key?(person_id)
+
+    @contacts_by_person_id[person_id] = resolve_contact(person_id)
+  end
+
+  def resolve_contact(person_id)
     cached = @account.contacts.where("contacts.additional_attributes -> 'external' ->> 'pipedrive_id' = ?", person_id.to_s).first
     return cached if cached.present?
 

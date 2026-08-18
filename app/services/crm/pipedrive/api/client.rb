@@ -1,6 +1,8 @@
 class Crm::Pipedrive::Api::Client
   include HTTParty
-  base_uri 'https://api.pipedrive.com/v1'
+  base_uri 'https://api.pipedrive.com'
+
+  PAGE_SIZE = 100
 
   class ApiError < StandardError; end
 
@@ -9,23 +11,31 @@ class Crm::Pipedrive::Api::Client
   end
 
   def pipeline(pipeline_id)
-    request(:get, "/pipelines/#{pipeline_id}")
+    request(:get, "/v1/pipelines/#{pipeline_id}")
   end
 
   def stages(pipeline_id)
-    request(:get, '/stages', query: { pipeline_id: pipeline_id })
+    request(:get, '/v1/stages', query: { pipeline_id: pipeline_id })
   end
 
   def users
-    request(:get, '/users')
+    request(:get, '/v1/users')
   end
 
   def person(person_id)
-    request(:get, "/persons/#{person_id}")
+    request(:get, "/v1/persons/#{person_id}")
+  end
+
+  def deals(pipeline_id:, updated_since:)
+    paginated('/api/v2/deals', pipeline_id: pipeline_id, updated_since: updated_since)
+  end
+
+  def activities(updated_since:)
+    paginated('/api/v2/activities', updated_since: updated_since)
   end
 
   def create_webhook(subscription_url:, event_object:, auth_user:, auth_password:)
-    request(:post, '/webhooks', body: {
+    request(:post, '/v1/webhooks', body: {
               subscription_url: subscription_url,
               event_action: '*',
               event_object: event_object,
@@ -36,19 +46,37 @@ class Crm::Pipedrive::Api::Client
   end
 
   def delete_webhook(webhook_id)
-    request(:delete, "/webhooks/#{webhook_id}")
+    request(:delete, "/v1/webhooks/#{webhook_id}")
   end
 
   private
 
+  def paginated(path, query)
+    records = []
+    cursor = nil
+
+    loop do
+      response = full_response(:get, path, query: query.merge(limit: PAGE_SIZE, cursor: cursor).compact)
+      records.concat(Array(response['data']))
+      cursor = response.dig('additional_data', 'next_cursor')
+      break if cursor.blank?
+    end
+
+    records
+  end
+
   def request(method, path, query: {}, body: nil)
+    full_response(method, path, query: query, body: body)['data']
+  end
+
+  def full_response(method, path, query: {}, body: nil)
     options = { headers: headers, query: query }
     options[:body] = body.to_json if body.present?
 
     response = self.class.public_send(method, path, options)
     raise ApiError, "Pipedrive #{method.to_s.upcase} #{path} failed (#{response.code}): #{response.body}" unless response.success?
 
-    response.parsed_response['data']
+    response.parsed_response
   end
 
   def headers
