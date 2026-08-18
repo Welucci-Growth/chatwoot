@@ -70,7 +70,18 @@
         "LOST": "Perdido"
       },
       "SHOW_ALL": "Mostrar todos os {count} campos",
-      "SHOW_LESS": "Mostrar menos"
+      "SHOW_LESS": "Mostrar menos",
+      "QUANTITY_PRICE": "{quantity} × {price}",
+      "TOTAL": "Total",
+      "DOWNLOAD": "Baixar",
+      "LOAD_ERROR": "Não foi possível carregar os dados do Pipedrive.",
+      "TABS": {
+        "OVERVIEW": "Visão geral",
+        "PRODUCTS": "Produtos",
+        "FILES": "Anexos",
+        "NOTES": "Notas",
+        "ACTIVITIES": "Atividades"
+      }
     }
   }
 }

@@ -22,4 +22,12 @@ class TaskPolicy < ApplicationPolicy
   def destroy?
     index?
   end
+
+  def crm_panel?
+    index?
+  end
+
+  def crm_file?
+    index?
+  end
 end

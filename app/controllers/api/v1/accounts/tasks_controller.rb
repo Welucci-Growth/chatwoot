@@ -1,5 +1,5 @@
 class Api::V1::Accounts::TasksController < Api::V1::Accounts::BaseController
-  before_action :fetch_task, only: [:show, :update, :destroy, :move]
+  before_action :fetch_task, only: [:show, :update, :destroy, :move, :crm_panel, :crm_file]
   before_action :check_authorization
 
   def index
@@ -30,6 +30,17 @@ class Api::V1::Accounts::TasksController < Api::V1::Accounts::BaseController
     head :ok
   end
 
+  # Products, files, notes and activities of the mirrored CRM record, read on demand.
+  def crm_panel
+    render json: Crm::Pipedrive::DealPanelService.new(@task).perform
+  end
+
+  def crm_file
+    file = Crm::Pipedrive::Api::Client.new(pipedrive_hook.settings['api_token']).download_file(params[:file_id])
+
+    send_data file.body, type: file.headers['content-type'], disposition: 'inline'
+  end
+
   private
 
   def fetch_task
@@ -38,6 +49,10 @@ class Api::V1::Accounts::TasksController < Api::V1::Accounts::BaseController
 
   def accessible_board_ids
     Current.account.task_boards.accessible_by(Current.user).select(:id)
+  end
+
+  def pipedrive_hook
+    Current.account.hooks.find_by!(app_id: 'pipedrive')
   end
 
   def permitted_params

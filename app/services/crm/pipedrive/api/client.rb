@@ -43,6 +43,30 @@ class Crm::Pipedrive::Api::Client
     request(:get, "/api/v2/deals/#{deal_id}")
   end
 
+  def deal_products(deal_id)
+    request(:get, "/v1/deals/#{deal_id}/products", query: { limit: 100 })
+  end
+
+  def deal_files(deal_id)
+    request(:get, "/v1/deals/#{deal_id}/files", query: { limit: 100 })
+  end
+
+  def deal_notes(deal_id)
+    request(:get, '/v1/notes', query: { deal_id: deal_id, limit: 50, sort: 'add_time DESC' })
+  end
+
+  def deal_activities(deal_id)
+    request(:get, "/v1/deals/#{deal_id}/activities", query: { limit: 50 })
+  end
+
+  # Files live behind the API, so they are streamed through Chatwoot instead of linked.
+  def download_file(file_id)
+    response = self.class.get("/v1/files/#{file_id}/download", headers: headers)
+    raise ApiError, "Pipedrive file #{file_id} download failed (#{response.code})" unless response.success?
+
+    response
+  end
+
   def create_webhook(subscription_url:, event_object:, auth_user:, auth_password:)
     request(:post, '/v1/webhooks', body: {
               subscription_url: subscription_url,
