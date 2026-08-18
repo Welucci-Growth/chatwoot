@@ -179,7 +179,7 @@ class Crm::Pipedrive::DealPanelService
     return nil if value.blank?
     return stage_name(value) if key == 'stage_id'
 
-    custom_field(key)&.dig('options')&.dig(value.to_s) || value
+    custom_field(key)&.dig('options', value.to_s) || value
   end
 
   def custom_field(key)
