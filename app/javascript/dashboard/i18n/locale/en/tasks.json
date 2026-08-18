@@ -68,7 +68,9 @@
         "OPEN": "Em aberto",
         "WON": "Ganho",
         "LOST": "Perdido"
-      }
+      },
+      "SHOW_ALL": "Mostrar todos os {count} campos",
+      "SHOW_LESS": "Mostrar menos"
     }
   }
 }

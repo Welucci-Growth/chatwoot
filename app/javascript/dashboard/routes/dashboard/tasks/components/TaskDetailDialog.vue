@@ -13,14 +13,30 @@ const props = defineProps({
 const { t } = useI18n();
 
 const dialogRef = ref(null);
+const showAllFields = ref(false);
 
-const open = () => dialogRef.value.open();
+const FIELD_PREVIEW_COUNT = 12;
+
+const open = () => {
+  showAllFields.value = false;
+  dialogRef.value.open();
+};
 const close = () => dialogRef.value.close();
 defineExpose({ open, close });
 
 const crm = computed(() => props.task?.customAttributes?.pipedrive || {});
 const amounts = computed(() => crm.value.amounts || {});
 const fields = computed(() => crm.value.fields || []);
+
+// Negocios chegam com dezenas de campos preenchidos; a lista abre curta e expande.
+const visibleFields = computed(() =>
+  showAllFields.value
+    ? fields.value
+    : fields.value.slice(0, FIELD_PREVIEW_COUNT)
+);
+const hasHiddenFields = computed(
+  () => fields.value.length > FIELD_PREVIEW_COUNT
+);
 
 const formatMoney = value =>
   new Intl.NumberFormat(undefined, {
@@ -133,46 +149,52 @@ const summary = computed(() =>
         </div>
       </div>
 
-      <div class="grid gap-5 sm:grid-cols-2">
-        <div v-if="fields.length" class="flex flex-col gap-3">
-          <h4
-            class="text-xs font-medium uppercase tracking-wide text-n-slate-10"
+      <div v-if="summary.length" class="flex flex-col gap-3">
+        <h4 class="text-xs font-medium tracking-wide uppercase text-n-slate-10">
+          {{ t('TASKS.DETAIL.SUMMARY') }}
+        </h4>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div
+            v-for="item in summary"
+            :key="item.label"
+            class="flex flex-col gap-0.5 min-w-0"
           >
-            {{ t('TASKS.DETAIL.FIELDS') }}
-          </h4>
-          <dl class="flex flex-col gap-2">
-            <div
-              v-for="field in fields"
-              :key="field.name"
-              class="flex items-start justify-between gap-3 pb-2 border-b border-n-weak last:border-0"
-            >
-              <dt class="text-xs text-n-slate-10">{{ field.name }}</dt>
-              <dd class="text-xs font-medium text-right text-n-slate-12">
-                {{ field.value }}
-              </dd>
-            </div>
-          </dl>
+            <span class="text-[11px] text-n-slate-10">{{ item.label }}</span>
+            <span class="text-xs font-medium truncate text-n-slate-12">
+              {{ item.value }}
+            </span>
+          </div>
         </div>
+      </div>
 
-        <div class="flex flex-col gap-3">
-          <h4
-            class="text-xs font-medium uppercase tracking-wide text-n-slate-10"
+      <div v-if="fields.length" class="flex flex-col gap-3">
+        <h4 class="text-xs font-medium tracking-wide uppercase text-n-slate-10">
+          {{ t('TASKS.DETAIL.FIELDS') }}
+        </h4>
+        <dl class="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+          <div
+            v-for="field in visibleFields"
+            :key="field.name"
+            class="flex items-start justify-between gap-3 pb-2 border-b border-n-weak"
           >
-            {{ t('TASKS.DETAIL.SUMMARY') }}
-          </h4>
-          <dl class="flex flex-col gap-2">
-            <div
-              v-for="item in summary"
-              :key="item.label"
-              class="flex items-start justify-between gap-3 pb-2 border-b border-n-weak last:border-0"
-            >
-              <dt class="text-xs text-n-slate-10">{{ item.label }}</dt>
-              <dd class="text-xs font-medium text-right text-n-slate-12">
-                {{ item.value }}
-              </dd>
-            </div>
-          </dl>
-        </div>
+            <dt class="text-xs text-n-slate-10">{{ field.name }}</dt>
+            <dd class="text-xs font-medium text-right text-n-slate-12">
+              {{ field.value }}
+            </dd>
+          </div>
+        </dl>
+        <button
+          v-if="hasHiddenFields"
+          class="self-start text-xs font-medium text-n-brand hover:underline"
+          type="button"
+          @click="showAllFields = !showAllFields"
+        >
+          {{
+            showAllFields
+              ? t('TASKS.DETAIL.SHOW_LESS')
+              : t('TASKS.DETAIL.SHOW_ALL', { count: fields.length })
+          }}
+        </button>
       </div>
 
       <p
