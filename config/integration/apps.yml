@@ -350,6 +350,7 @@ pipedrive:
           'stage_columns': { 'type': 'object' },
           'user_map': { 'type': 'object' },
           'deal_fields': { 'type': 'array' },
+          'activity_types': { 'type': 'object' },
         },
       'required': ['api_token', 'company_domain'],
       'additionalProperties': false,

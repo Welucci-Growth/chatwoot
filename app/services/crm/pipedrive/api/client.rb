@@ -43,6 +43,19 @@ class Crm::Pipedrive::Api::Client
     request(:get, "/api/v2/deals/#{deal_id}")
   end
 
+  # v1 carries stay_in_pipeline_stages, which powers the stage progress bar.
+  def deal_detail(deal_id)
+    request(:get, "/v1/deals/#{deal_id}")
+  end
+
+  def deal_changelog(deal_id)
+    request(:get, "/v1/deals/#{deal_id}/changelog", query: { limit: 30 })
+  end
+
+  def activity_types
+    request(:get, '/v1/activityTypes')
+  end
+
   def deal_products(deal_id)
     request(:get, "/v1/deals/#{deal_id}/products", query: { limit: 100 })
   end

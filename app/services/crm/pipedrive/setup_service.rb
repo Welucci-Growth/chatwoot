@@ -16,6 +16,7 @@ class Crm::Pipedrive::SetupService
     provision_boards
     map_users
     map_deal_fields
+    map_activity_types
     register_webhooks
     @hook.save!
   end
@@ -105,6 +106,10 @@ class Crm::Pipedrive::SetupService
   # Pipedrive keys its custom fields with a 40 character hash; built in ones use plain names.
   def custom_field?(field)
     field['key'].to_s.length == 40
+  end
+
+  def map_activity_types
+    settings['activity_types'] = client.activity_types.to_h { |type| [type['key_string'], type['name']] }
   end
 
   def register_webhooks

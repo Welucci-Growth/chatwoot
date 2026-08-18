@@ -80,8 +80,13 @@
         "PRODUCTS": "Produtos",
         "FILES": "Anexos",
         "NOTES": "Notas",
-        "ACTIVITIES": "Atividades"
-      }
+        "ACTIVITIES": "Atividades",
+        "HISTORY": "Histórico"
+      },
+      "PENDING": "Pendentes",
+      "DONE": "Concluídas",
+      "DAYS": "{count}d",
+      "CHANGED": "{from} → {to}"
     }
   }
 }

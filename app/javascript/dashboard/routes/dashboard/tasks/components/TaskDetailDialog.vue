@@ -33,6 +33,29 @@ const files = computed(() => panel.value.files || []);
 const notes = computed(() => panel.value.notes || []);
 const activities = computed(() => panel.value.activities || []);
 const person = computed(() => panel.value.person || null);
+const stages = computed(() => panel.value.stages || []);
+const changelog = computed(() => panel.value.changelog || []);
+
+const pendingActivities = computed(() =>
+  activities.value.filter(activity => !activity.done)
+);
+const doneActivities = computed(() =>
+  activities.value.filter(activity => activity.done)
+);
+
+const isOverdue = activity =>
+  activity.due_date && new Date(activity.due_date) < new Date();
+
+const activityGroups = computed(() =>
+  [
+    {
+      key: 'pending',
+      label: t('TASKS.DETAIL.PENDING'),
+      items: pendingActivities.value,
+    },
+    { key: 'done', label: t('TASKS.DETAIL.DONE'), items: doneActivities.value },
+  ].filter(group => group.items.length)
+);
 
 const formatMoney = (value, currency) =>
   new Intl.NumberFormat(undefined, {
@@ -187,6 +210,11 @@ const tabs = computed(() =>
   [
     { key: 'overview', label: t('TASKS.DETAIL.TABS.OVERVIEW') },
     {
+      key: 'activities',
+      label: t('TASKS.DETAIL.TABS.ACTIVITIES'),
+      count: activities.value.length,
+    },
+    {
       key: 'products',
       label: t('TASKS.DETAIL.TABS.PRODUCTS'),
       count: products.value.length,
@@ -202,9 +230,9 @@ const tabs = computed(() =>
       count: notes.value.length,
     },
     {
-      key: 'activities',
-      label: t('TASKS.DETAIL.TABS.ACTIVITIES'),
-      count: activities.value.length,
+      key: 'changelog',
+      label: t('TASKS.DETAIL.TABS.HISTORY'),
+      count: changelog.value.length,
     },
   ].filter(tab => tab.key === 'overview' || tab.count > 0)
 );
@@ -277,6 +305,31 @@ const onTabChange = tab => {
               {{ stat.amount }}
             </span>
           </div>
+        </div>
+      </div>
+      <div v-if="stages.length" class="flex gap-1 overflow-x-auto">
+        <div
+          v-for="stage in stages"
+          :key="stage.name"
+          class="flex flex-col gap-1 flex-1 min-w-[76px]"
+        >
+          <span
+            class="h-1.5 rounded-full"
+            :class="stage.current ? 'bg-n-brand' : 'bg-n-alpha-2'"
+          />
+          <span
+            class="text-[10px] truncate"
+            :class="
+              stage.current
+                ? 'font-semibold text-n-slate-12'
+                : 'text-n-slate-10'
+            "
+          >
+            {{ stage.name }}
+          </span>
+          <span v-if="stage.days" class="text-[10px] text-n-slate-10">
+            {{ t('TASKS.DETAIL.DAYS', { count: stage.days }) }}
+          </span>
         </div>
       </div>
 
@@ -466,31 +519,89 @@ const onTabChange = tab => {
 
         <div
           v-else-if="currentTab === 'activities'"
-          class="flex flex-col gap-2"
+          class="flex flex-col gap-4"
         >
           <div
-            v-for="activity in activities"
-            :key="activity.id"
-            class="flex items-start gap-3 px-3 py-2.5 border bg-n-solid-2 border-n-weak rounded-xl"
+            v-for="group in activityGroups"
+            :key="group.key"
+            class="flex flex-col gap-2"
           >
-            <span
-              class="mt-0.5 size-3.5 shrink-0"
-              :class="
-                activity.done
-                  ? 'i-lucide-check-circle-2 text-n-teal-11'
-                  : 'i-lucide-clock text-n-slate-10'
-              "
-            />
-            <div class="flex flex-col flex-1 min-w-0 gap-0.5">
-              <span class="text-xs font-medium text-n-slate-12">
-                {{ activity.subject }}
+            <h4
+              class="text-xs font-medium tracking-wide uppercase text-n-slate-10"
+            >
+              {{ group.label }}
+            </h4>
+            <div
+              v-for="activity in group.items"
+              :key="activity.id"
+              class="flex items-start gap-3 px-3 py-2.5 border bg-n-solid-2 border-n-weak rounded-xl"
+              :class="{ 'opacity-70': activity.done }"
+            >
+              <span
+                class="mt-0.5 size-4 shrink-0"
+                :class="
+                  activity.done
+                    ? 'i-lucide-check-circle-2 text-n-teal-11'
+                    : 'i-lucide-circle text-n-slate-10'
+                "
+              />
+              <div class="flex flex-col flex-1 min-w-0 gap-1">
+                <span class="text-xs font-medium text-n-slate-12">
+                  {{ activity.subject }}
+                </span>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span
+                    v-if="activity.type"
+                    class="px-1.5 py-0.5 rounded text-[10px] bg-n-alpha-2 text-n-slate-11"
+                  >
+                    {{ activity.type }}
+                  </span>
+                  <span
+                    v-if="activity.owner"
+                    class="text-[10px] text-n-slate-10"
+                  >
+                    {{ activity.owner }}
+                  </span>
+                </div>
+                <span v-if="activity.note" class="text-[11px] text-n-slate-11">
+                  {{ activity.note }}
+                </span>
+              </div>
+              <span
+                class="text-[10px] shrink-0"
+                :class="
+                  !activity.done && isOverdue(activity)
+                    ? 'font-medium text-n-ruby-11'
+                    : 'text-n-slate-10'
+                "
+              >
+                {{ formatDate(activity.due_date) }}
               </span>
-              <span v-if="activity.note" class="text-[11px] text-n-slate-11">
-                {{ activity.note }}
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="currentTab === 'changelog'" class="flex flex-col gap-2">
+          <div
+            v-for="(entry, index) in changelog"
+            :key="index"
+            class="flex items-start justify-between gap-3 pb-2 border-b border-n-weak"
+          >
+            <div class="flex flex-col min-w-0 gap-0.5">
+              <span class="text-xs font-medium text-n-slate-12">
+                {{ entry.field }}
+              </span>
+              <span class="text-[11px] text-n-slate-10">
+                {{
+                  t('TASKS.DETAIL.CHANGED', {
+                    from: entry.from || '—',
+                    to: entry.to || '—',
+                  })
+                }}
               </span>
             </div>
             <span class="text-[10px] shrink-0 text-n-slate-10">
-              {{ formatDate(activity.due_date) }}
+              {{ formatDate(entry.changed_at) }}
             </span>
           </div>
         </div>
