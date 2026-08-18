@@ -1,5 +1,7 @@
 class Crm::Pipedrive::DealPanelService
-  IMAGE_TYPES = %w[jpg jpeg png gif webp heic].freeze
+  # Pipedrive tags images as 'img' rather than by extension, and some uploads arrive with
+  # no type at all, so the file name is the fallback.
+  IMAGE_TYPES = %w[img jpg jpeg png gif webp heic].freeze
 
   def initialize(task)
     @task = task
@@ -50,11 +52,17 @@ class Crm::Pipedrive::DealPanelService
         name: file['name'],
         size: file['file_size'],
         type: file['file_type'],
-        image: IMAGE_TYPES.include?(file['file_type'].to_s.downcase),
+        image: image?(file),
         added_at: file['add_time'],
         remote_url: file['url'].presence
       }
     end
+  end
+
+  def image?(file)
+    return true if IMAGE_TYPES.include?(file['file_type'].to_s.downcase)
+
+    IMAGE_TYPES.include?(File.extname(file['name'].to_s).delete('.').downcase)
   end
 
   def notes

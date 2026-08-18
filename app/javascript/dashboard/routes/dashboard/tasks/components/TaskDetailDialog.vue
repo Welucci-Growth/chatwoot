@@ -53,6 +53,12 @@ const formatSize = bytes => {
   return `${(bytes / 1024 ** exponent).toFixed(exponent ? 1 : 0)} ${units[exponent]}`;
 };
 
+// O download do Pipedrive volta como octet-stream, entao o tipo vem do nome do arquivo.
+const imageMimeType = name => {
+  const extension = name.split('.').pop().toLowerCase();
+  return `image/${extension === 'jpg' ? 'jpeg' : extension}`;
+};
+
 // Imagens do CRM exigem autenticacao, entao a previa vem por blob em vez de src direto.
 const loadPreviews = async () => {
   await Promise.all(
@@ -61,7 +67,9 @@ const loadPreviews = async () => {
       .map(async file => {
         try {
           const { data } = await TasksAPI.crmFile(props.task.id, file.id);
-          previews.value[file.id] = URL.createObjectURL(data);
+          previews.value[file.id] = URL.createObjectURL(
+            new Blob([data], { type: imageMimeType(file.name) })
+          );
         } catch {
           previews.value[file.id] = '';
         }
