@@ -158,7 +158,12 @@ class Crm::Pipedrive::DealPanelService
       label = field_label(entry['field_key'])
       next if label.blank?
 
-      { field: label, from: entry['old_value'], to: entry['new_value'], changed_at: entry['log_time'] }
+      {
+        field: label,
+        from: value_label(entry['field_key'], entry['old_value']),
+        to: value_label(entry['field_key'], entry['new_value']),
+        changed_at: entry['log_time']
+      }
     end
   end
 
@@ -166,7 +171,24 @@ class Crm::Pipedrive::DealPanelService
   def field_label(key)
     return STANDARD_FIELD_LABELS[key] if STANDARD_FIELD_LABELS.key?(key)
 
-    Array(@hook.settings['deal_fields']).find { |field| field['key'] == key }&.dig('name')
+    custom_field(key)&.dig('name')
+  end
+
+  # A changed value is logged as the option id, which reads as noise without the label.
+  def value_label(key, value)
+    return nil if value.blank?
+    return stage_name(value) if key == 'stage_id'
+
+    custom_field(key)&.dig('options')&.dig(value.to_s) || value
+  end
+
+  def custom_field(key)
+    Array(@hook.settings['deal_fields']).find { |field| field['key'] == key }
+  end
+
+  def stage_name(stage_id)
+    column_id = (@hook.settings['stage_columns'] || {})[stage_id.to_s]
+    @task.task_board.task_columns.find { |column| column.id == column_id }&.name || stage_id
   end
 
   def activity_type_label(type)
