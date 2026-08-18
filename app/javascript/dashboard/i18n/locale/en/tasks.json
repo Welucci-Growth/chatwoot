@@ -45,6 +45,7 @@
       "DUE_ON": "Vencimento",
       "LABELS": "Etiquetas",
       "LABELS_PLACEHOLDER": "Separadas por vírgula"
-    }
+    },
+    "PIPEDRIVE_LINK": "Pipedrive"
   }
 }

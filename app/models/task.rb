@@ -49,6 +49,10 @@ class Task < ApplicationRecord
   validates :account_id, presence: true
 
   scope :latest, -> { order(created_at: :desc) }
+  # Finds the task mirroring an external record, e.g. with_external_reference('pipedrive', 'deal-42')
+  scope :with_external_reference, lambda { |source, external_id|
+    where('tasks.custom_attributes @> ?', { source => { id: external_id } }.to_json)
+  }
 
   def overdue?
     due_on.present? && due_on < Time.current

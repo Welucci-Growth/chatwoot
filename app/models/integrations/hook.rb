@@ -17,9 +17,13 @@
 class Integrations::Hook < ApplicationRecord
   include Reauthorizable
 
+  PIPEDRIVE_CONFIG_KEYS = %w[api_token company_domain pipeline_ids sync_activities].freeze
+
   attr_readonly :app_id, :account_id, :inbox_id, :hook_type
   before_validation :ensure_hook_type
   after_create :trigger_setup_if_crm
+  after_update :trigger_setup_if_crm, if: :pipedrive_config_changed?
+  after_destroy :remove_pipedrive_webhooks
 
   # TODO: Remove guard once encryption keys become mandatory (target 3-4 releases out).
   encrypts :access_token, deterministic: true if Chatwoot.encryption_configured?
@@ -175,6 +179,25 @@ class Integrations::Hook < ApplicationRecord
   end
 
   def crm_integration?
-    %w[leadsquared].include?(app_id)
+    %w[leadsquared pipedrive].include?(app_id)
+  end
+
+  # Re-provisions boards and webhook subscriptions when the integration is reconfigured.
+  # Only the operator facing keys count, so the setup service writing its own bookkeeping
+  # back into settings does not loop.
+  def pipedrive_config_changed?
+    return false unless app_id == 'pipedrive'
+
+    before, after = saved_change_to_settings
+    before.to_h.values_at(*PIPEDRIVE_CONFIG_KEYS) != after.to_h.values_at(*PIPEDRIVE_CONFIG_KEYS)
+  end
+
+  def remove_pipedrive_webhooks
+    return unless app_id == 'pipedrive'
+
+    ::Crm::Pipedrive::SetupService.new(self).teardown
+  rescue StandardError => e
+    # The subscription may already be gone on the Pipedrive side; the hook still has to go.
+    Rails.logger.error "Failed to remove Pipedrive webhooks for hook ##{id}: #{e.message}"
   end
 end

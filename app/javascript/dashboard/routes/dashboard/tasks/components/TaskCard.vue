@@ -15,6 +15,10 @@ const dueLabel = computed(() => {
   if (!props.task.dueOn) return '';
   return new Date(props.task.dueOn * 1000).toLocaleDateString();
 });
+
+const pipedriveUrl = computed(
+  () => props.task.customAttributes?.pipedrive?.url || ''
+);
 </script>
 
 <template>
@@ -37,6 +41,18 @@ const dueLabel = computed(() => {
     <p v-if="task.description" class="text-xs text-n-slate-11 line-clamp-2">
       {{ task.description }}
     </p>
+
+    <a
+      v-if="pipedriveUrl"
+      :href="pipedriveUrl"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex items-center self-start gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-medium bg-n-alpha-2 text-n-slate-11 hover:text-n-brand"
+      @click.stop
+    >
+      <span class="i-lucide-external-link size-3" />
+      {{ t('TASKS.PIPEDRIVE_LINK') }}
+    </a>
 
     <div v-if="task.labels?.length" class="flex flex-wrap items-center gap-1">
       <span

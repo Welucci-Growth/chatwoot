@@ -8,6 +8,7 @@ json.due_on resource.due_on&.to_i
 json.overdue resource.overdue?
 json.conversation_id resource.conversation_id
 json.labels resource.label_list
+json.custom_attributes resource.custom_attributes
 if resource.assignee.present?
   json.assignee do
     json.partial! 'api/v1/models/agent', formats: [:json], resource: resource.assignee

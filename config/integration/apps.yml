@@ -328,3 +328,60 @@ leadsquared:
       'conversation_activity_score',
       'transcript_activity_score',
     ]
+pipedrive:
+  id: pipedrive
+  logo: pipedrive.png
+  i18n_key: pipedrive
+  action: /pipedrive
+  hook_type: account
+  allow_multiple_hooks: false
+  settings_json_schema:
+    {
+      'type': 'object',
+      'properties':
+        {
+          'api_token': { 'type': 'string' },
+          'company_domain': { 'type': 'string' },
+          'pipeline_ids': { 'type': 'string' },
+          'sync_activities': { 'type': 'boolean' },
+          'webhook_secret': { 'type': 'string' },
+          'webhook_ids': { 'type': 'array' },
+          'board_ids': { 'type': 'object' },
+          'stage_columns': { 'type': 'object' },
+          'user_map': { 'type': 'object' },
+        },
+      'required': ['api_token', 'company_domain'],
+      'additionalProperties': false,
+    }
+  settings_form_schema:
+    [
+      {
+        'label': 'API token',
+        'type': 'text',
+        'name': 'api_token',
+        'validation': 'required',
+        'validationName': 'API token',
+        'help': 'Pipedrive → Configurações pessoais → API → token pessoal',
+      },
+      {
+        'label': 'Domínio da conta',
+        'type': 'text',
+        'name': 'company_domain',
+        'validation': 'required',
+        'validationName': 'Domínio',
+        'help': 'O trecho antes de .pipedrive.com, usado nos links dos cards',
+      },
+      {
+        'label': 'Funis a sincronizar',
+        'type': 'text',
+        'name': 'pipeline_ids',
+        'help': 'IDs separados por vírgula, como aparecem na URL do funil no Pipedrive (/pipeline/42). Cada funil vira um painel, com as etapas como colunas. Em branco, nenhum negócio é sincronizado.',
+      },
+      {
+        'label': 'Sincronizar atividades',
+        'type': 'checkbox',
+        'name': 'sync_activities',
+        'help': 'Cria o painel "Pipedrive · Atividades" com as tarefas, ligações e reuniões do CRM',
+      },
+    ]
+  visible_properties: ['company_domain', 'pipeline_ids', 'sync_activities']
