@@ -3,6 +3,11 @@
 # the URL carries a secret shared by all Evolution inboxes on this installation.
 class Webhooks::EvolutionController < ActionController::API
   def process_payload
+    # The global webhook fans out every Evolution event, and the chatty ones (presence,
+    # chat and contact syncs) outnumber messages by orders of magnitude. Dropping them here
+    # keeps them from becoming Sidekiq jobs that only get discarded later.
+    return head :ok unless Webhooks::EvolutionEventsJob::SUPPORTED_EVENTS.include?(params[:event])
+
     channel = Channel::Whatsapp.where(provider: 'evolution')
                                .find_by("provider_config->>'instance' = ?", params[:instance])
 
