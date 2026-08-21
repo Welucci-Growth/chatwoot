@@ -48,6 +48,7 @@ services:
     command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
     networks:
       - chatwoot_internal
+      - traefik
 
   postgres:
     image: pgvector/pgvector:pg16
