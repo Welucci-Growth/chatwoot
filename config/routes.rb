@@ -666,7 +666,9 @@ Rails.application.routes.draw do
   post 'webhooks/sms/:phone_number', to: 'webhooks/sms#process_payload'
   get 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#verify'
   post 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#process_payload'
-  post 'webhooks/evolution/:token', to: 'webhooks/evolution#process_payload'
+  # Evolution appends the event name to the URL when its by-events mode is on, and that mode
+  # can be driven per instance, so accept both forms. The event is read from the payload.
+  post 'webhooks/evolution/:token(/:event_path)', to: 'webhooks/evolution#process_payload'
   get 'webhooks/instagram', to: 'webhooks/instagram#verify'
   post 'webhooks/instagram', to: 'webhooks/instagram#events'
   post 'webhooks/tiktok', to: 'webhooks/tiktok#events'
