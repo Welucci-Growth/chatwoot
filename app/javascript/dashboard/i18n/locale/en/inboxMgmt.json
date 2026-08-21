@@ -266,7 +266,7 @@
           "INSTANCE": {
             "LABEL": "Instance name",
             "PLACEHOLDER": "The instance already paired in Evolution",
-            "ERROR": "This field is required"
+            "ERROR": "Enter the instance name exactly as it appears in Evolution"
           },
           "API_KEY": {
             "LABEL": "API key",
@@ -274,8 +274,8 @@
             "ERROR": "This field is required"
           },
           "WEBHOOK": {
-            "TITLE": "Last step: point Evolution at this URL",
-            "BODY": "In your Evolution instance, set the webhook below with the messages.upsert event enabled and Webhook by Events turned off.",
+            "TITLE": "Last step: set this as Evolution's global webhook",
+            "BODY": "Set the URL below as the global webhook on your Evolution server (WEBHOOK_GLOBAL_URL), with the MESSAGES_UPSERT event enabled and Webhook by Events turned off. This same URL serves every instance — the instance name in each event picks the matching inbox, so the per-instance webhooks you already use stay untouched.",
             "COPY": "Copy"
           },
           "API": {

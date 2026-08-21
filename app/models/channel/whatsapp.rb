@@ -83,6 +83,12 @@ class Channel::Whatsapp < ApplicationRecord
     provider == 'evolution'
   end
 
+  # A single Evolution global webhook feeds every instance, so all Evolution inboxes answer on
+  # the same URL and share its secret; the instance name in the payload picks the inbox.
+  def self.evolution_webhook_token
+    where(provider: 'evolution').pick(Arel.sql("provider_config->>'webhook_verify_token'")).presence || SecureRandom.hex(16)
+  end
+
   # Enables voice: turns calling on at Meta (idempotent), then re-registers webhooks
   # with the in-memory calling_enabled flag so the `calls` field is subscribed. The
   # flag is persisted only after registration succeeds, so a webhook failure can't
@@ -143,7 +149,14 @@ class Channel::Whatsapp < ApplicationRecord
   private
 
   def ensure_webhook_verify_token
-    provider_config['webhook_verify_token'] ||= SecureRandom.hex(16) if %w[whatsapp_cloud evolution].include?(provider)
+    return if provider_config['webhook_verify_token'].present?
+
+    case provider
+    when 'whatsapp_cloud'
+      provider_config['webhook_verify_token'] = SecureRandom.hex(16)
+    when 'evolution'
+      provider_config['webhook_verify_token'] = self.class.evolution_webhook_token
+    end
   end
 
   def validate_provider_config
