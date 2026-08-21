@@ -248,11 +248,39 @@
           "WHATSAPP_CLOUD": "WhatsApp Cloud",
           "WHATSAPP_CLOUD_DESC": "Quick setup through Meta",
           "TWILIO_DESC": "Connect via Twilio credentials",
-          "360_DIALOG": "360Dialog"
+          "360_DIALOG": "360Dialog",
+          "EVOLUTION": "Evolution API",
+          "EVOLUTION_DESC": "Mirror an existing number, read-only"
         },
         "SELECT_PROVIDER": {
           "TITLE": "Select your API provider",
           "DESCRIPTION": "Choose your WhatsApp provider. You can connect directly through Meta which requires no setup, or connect through Twilio using your account credentials."
+        },
+        "EVOLUTION": {
+          "READ_ONLY_NOTICE": "This inbox is read-only. Every message, group and media file is mirrored into Chatwoot, but agents cannot reply from here — replies still happen in the WhatsApp app. Evolution API is not an official WhatsApp product, so keeping the connection silent is what protects the number.",
+          "BASE_URL": {
+            "LABEL": "Evolution server URL",
+            "PLACEHOLDER": "https://evolution.example.com",
+            "ERROR": "Enter the full URL of your Evolution server"
+          },
+          "INSTANCE": {
+            "LABEL": "Instance name",
+            "PLACEHOLDER": "The instance already paired in Evolution",
+            "ERROR": "This field is required"
+          },
+          "API_KEY": {
+            "LABEL": "API key",
+            "PLACEHOLDER": "The apikey of your Evolution server",
+            "ERROR": "This field is required"
+          },
+          "WEBHOOK": {
+            "TITLE": "Last step: point Evolution at this URL",
+            "BODY": "In your Evolution instance, set the webhook below with the messages.upsert event enabled and Webhook by Events turned off.",
+            "COPY": "Copy"
+          },
+          "API": {
+            "ERROR_MESSAGE": "We could not reach that Evolution instance. Check the URL, the instance name and the API key, and make sure the instance is connected."
+          }
         },
         "INBOX_NAME": {
           "LABEL": "Inbox Name",

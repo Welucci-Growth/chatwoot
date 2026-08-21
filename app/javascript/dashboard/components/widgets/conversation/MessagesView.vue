@@ -170,7 +170,13 @@ export default {
         instagramInbox
       );
     },
+    isReadOnlyInbox() {
+      return this.inbox?.provider === 'evolution';
+    },
     replyWindowBannerMessage() {
+      if (this.isReadOnlyInbox) {
+        return this.$t('CONVERSATION.READ_ONLY_INBOX');
+      }
       if (this.isAWhatsAppChannel) {
         return this.$t('CONVERSATION.TWILIO_WHATSAPP_CAN_REPLY');
       }
@@ -193,6 +199,9 @@ export default {
       return this.$t('CONVERSATION.CANNOT_REPLY');
     },
     replyWindowLink() {
+      if (this.isReadOnlyInbox) {
+        return '';
+      }
       if (this.isAFacebookInbox || this.isAnInstagramChannel) {
         return REPLY_POLICY.FACEBOOK;
       }
@@ -208,6 +217,9 @@ export default {
       return '';
     },
     replyWindowLinkText() {
+      if (this.isReadOnlyInbox) {
+        return '';
+      }
       if (
         this.isAWhatsAppChannel ||
         this.isAFacebookInbox ||

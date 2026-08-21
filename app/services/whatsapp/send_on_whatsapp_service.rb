@@ -6,10 +6,17 @@ class Whatsapp::SendOnWhatsappService < Base::SendOnChannelService
   end
 
   def perform_reply
+    return mark_read_only_failure if channel.read_only?
     return send_template_message if template_params.present?
     return send_session_message if message.conversation.can_reply?
 
     message.update!(status: :failed, external_error: I18n.t('errors.whatsapp.message_outside_messaging_window'))
+  end
+
+  # Read-only providers must not be reachable through the template path either, which skips
+  # the can_reply? check that already blocks session replies.
+  def mark_read_only_failure
+    message.update!(status: :failed, external_error: I18n.t('errors.whatsapp.read_only_inbox'))
   end
 
   def send_template_message
