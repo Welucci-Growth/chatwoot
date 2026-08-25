@@ -68,8 +68,15 @@ class ContactInbox < ApplicationRecord
 
   def validate_whatsapp_source_id
     return if WHATSAPP_CHANNEL_REGEX.match?(source_id)
+    # Group chats only exist on the Evolution mirror; Meta's Cloud API has no group messaging,
+    # so the phone-number rule stays in force for every other provider.
+    return if evolution_group_source_id?
 
     errors.add(:source_id, "invalid source id for whatsapp inbox. valid Regex #{WHATSAPP_CHANNEL_REGEX}")
+  end
+
+  def evolution_group_source_id?
+    inbox.channel.provider == 'evolution' && WHATSAPP_GROUP_JID_REGEX.match?(source_id)
   end
 
   def valid_source_id_format?

@@ -18,4 +18,6 @@ module RegexHelper
   WHATSAPP_BSUID_REGEX = Regexp.new("\\A#{WHATSAPP_BSUID_PATTERN}\\z")
   TWILIO_CHANNEL_WHATSAPP_REGEX = Regexp.new("\\A(?:whatsapp:\\+\\d{1,15}|whatsapp:#{WHATSAPP_BSUID_PATTERN})\\z")
   WHATSAPP_CHANNEL_REGEX = Regexp.new("\\A(?:\\d{1,15}|#{WHATSAPP_BSUID_PATTERN})\\z")
+  # Evolution mirrors group chats, whose ids are JIDs rather than phone numbers.
+  WHATSAPP_GROUP_JID_REGEX = Regexp.new('\A\d{5,}@g\.us\z')
 end
