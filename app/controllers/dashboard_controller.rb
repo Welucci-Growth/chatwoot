@@ -3,6 +3,7 @@ class DashboardController < ActionController::Base
   include PortalHomeData
 
   GLOBAL_CONFIG_KEYS = %w[
+    TYPEBOT_URL
     LOGO
     LOGO_DARK
     LOGO_THUMBNAIL

@@ -1,0 +1,9 @@
+{
+  "BOTS": {
+    "TITLE": "Bots",
+    "NOT_CONFIGURED": {
+      "TITLE": "Bots are not set up yet",
+      "BODY": "Add the Typebot address under Super Admin settings, in TYPEBOT_URL, and the flow builder will open right here."
+    }
+  }
+}

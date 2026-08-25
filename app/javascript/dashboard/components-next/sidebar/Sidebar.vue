@@ -379,6 +379,13 @@ const menuItems = computed(() => {
       activeOn: ['tasks_dashboard_index'],
     },
     {
+      name: 'Bots',
+      label: t('BOTS.TITLE'),
+      icon: 'i-lucide-bot',
+      to: accountScopedRoute('bots_dashboard_index'),
+      activeOn: ['bots_dashboard_index'],
+    },
+    {
       name: 'Conversation',
       label: t('SIDEBAR.CONVERSATIONS'),
       icon: 'i-lucide-message-circle',

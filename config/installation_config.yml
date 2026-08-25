@@ -431,6 +431,14 @@
   type: secret
 # ------- End of Shopify Related Config ------- #
 
+# ------- Typebot Related Config ------- #
+- name: TYPEBOT_URL
+  display_title: 'Typebot URL'
+  description: 'Base URL of the Typebot builder embedded in the dashboard. Leave blank to hide the Bots menu.'
+  value: ''
+  locked: false
+# ------- End of Typebot Related Config ------- #
+
 # ------- Instagram Channel Related Config ------- #
 - name: INSTAGRAM_APP_ID
   display_title: 'Instagram App ID'
