@@ -19,7 +19,17 @@ class Whatsapp::Evolution::GroupService
   # the web process that has to serve it.
   def cached_groups(instance)
     raw = ::Redis::Alfred.get(cache_key(instance))
-    raw.present? ? JSON.parse(raw, symbolize_names: true) : nil
+    return nil if raw.blank?
+
+    with_conversations(JSON.parse(raw, symbolize_names: true))
+  end
+
+  # Evolution knows every group the number belongs to; Chatwoot only has a thread for the ones
+  # that have spoken since the mirror was connected. Joining the two is what turns a directory
+  # into something you can monitor.
+  def with_conversations(groups)
+    threads = conversation_index(groups.pluck(:jid))
+    groups.map { |g| g.merge(threads.fetch(g[:jid], {})) }
   end
 
   def sync_groups(instance)
@@ -83,6 +93,27 @@ class Whatsapp::Evolution::GroupService
   end
 
   private
+
+  def conversation_index(jids)
+    inbox = channel.inbox
+    ContactInbox.where(inbox_id: inbox.id, source_id: jids)
+                .includes(conversations: :messages)
+                .each_with_object({}) do |ci, acc|
+      conversation = ci.conversations.max_by(&:id)
+      next if conversation.blank?
+
+      acc[ci.source_id] = {
+        conversation_id: conversation.display_id,
+        message_count: conversation.messages.size,
+        unread_count: conversation.messages.count { |m| m.incoming? && m.created_at > seen_at(conversation) },
+        last_activity_at: conversation.last_activity_at
+      }
+    end
+  end
+
+  def seen_at(conversation)
+    conversation.agent_last_seen_at || Time.zone.at(0)
+  end
 
   def cache_key(instance)
     "evolution_groups/#{channel.id}/#{instance}"

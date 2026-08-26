@@ -3,10 +3,13 @@ import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
+import { useStore } from 'vuex';
 import EvolutionGroupsAPI from 'dashboard/api/evolutionGroups';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import ConversationBox from 'dashboard/components/widgets/conversation/ConversationBox.vue';
 
 const { t } = useI18n();
+const store = useStore();
 
 const groups = ref([]);
 const isLoading = ref(false);
@@ -19,6 +22,7 @@ const instanceFilter = ref('');
 const selected = ref(null);
 const details = ref(null);
 const isLoadingDetails = ref(false);
+const showSettings = ref(false);
 const draftSubject = ref('');
 const draftDescription = ref('');
 
@@ -89,8 +93,25 @@ const loadGroups = async (refresh = false) => {
   }
 };
 
+const activeConversationId = ref(null);
+
+// Groups that have already spoken have a real Chatwoot conversation, so the thread is the
+// standard conversation pane rather than a second, parallel chat implementation.
+const openConversation = async group => {
+  activeConversationId.value = null;
+  if (!group.conversation_id) return;
+
+  await store.dispatch('getConversation', group.conversation_id);
+  const conversation = store.getters.getConversationById(group.conversation_id);
+  if (!conversation) return;
+
+  await store.dispatch('setActiveChat', { data: conversation });
+  activeConversationId.value = group.conversation_id;
+};
+
 const openGroup = async group => {
   selected.value = group;
+  openConversation(group);
   details.value = null;
   draftSubject.value = group.subject || '';
   draftDescription.value = group.description || '';
@@ -231,6 +252,9 @@ onMounted(() => loadGroups());
               <th class="px-4 py-2 font-medium">
                 {{ $t('GROUPS.TABLE.ANNOUNCE') }}
               </th>
+              <th class="px-4 py-2 font-medium">
+                {{ $t('GROUPS.TABLE.ACTIVITY') }}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -252,6 +276,23 @@ onMounted(() => loadGroups());
                   :title="$t('GROUPS.TABLE.ANNOUNCE')"
                 />
               </td>
+              <td class="px-4 py-2 text-n-slate-11">
+                <span
+                  v-if="group.conversation_id"
+                  class="flex items-center gap-2"
+                >
+                  <span class="tabular-nums">{{ group.message_count }}</span>
+                  <span
+                    v-if="group.unread_count"
+                    class="px-1.5 py-0.5 text-xs rounded-full bg-n-teal-9 text-white tabular-nums"
+                  >
+                    {{ group.unread_count }}
+                  </span>
+                </span>
+                <span v-else class="text-xs text-n-slate-10">
+                  {{ $t('GROUPS.TABLE.NO_THREAD') }}
+                </span>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -260,108 +301,136 @@ onMounted(() => loadGroups());
 
     <aside
       v-if="selected"
-      class="flex flex-col flex-shrink-0 h-full gap-4 p-6 overflow-auto border-l w-96 border-n-weak bg-n-solid-1"
+      class="flex flex-col flex-shrink-0 h-full border-l w-[32rem] border-n-weak"
     >
-      <div class="flex items-start justify-between gap-2">
-        <h2 class="text-base font-medium text-n-slate-12">
-          {{ $t('GROUPS.DETAIL.TITLE') }}
-        </h2>
-        <NextButton
-          xs
-          ghost
-          slate
-          icon="i-lucide-x"
-          :aria-label="$t('GROUPS.DETAIL.CLOSE')"
-          @click="selected = null"
-        />
+      <div
+        class="flex items-center justify-between gap-2 px-4 py-3 border-b border-n-weak"
+      >
+        <span class="text-sm font-medium truncate text-n-slate-12">
+          {{ selected.subject }}
+        </span>
+        <div class="flex items-center gap-1">
+          <NextButton
+            xs
+            ghost
+            slate
+            icon="i-lucide-settings-2"
+            :aria-label="$t('GROUPS.DETAIL.TITLE')"
+            @click="showSettings = !showSettings"
+          />
+          <NextButton
+            xs
+            ghost
+            slate
+            icon="i-lucide-x"
+            :aria-label="$t('GROUPS.DETAIL.CLOSE')"
+            @click="selected = null"
+          />
+        </div>
       </div>
 
-      <label>
-        {{ $t('GROUPS.TABLE.NAME') }}
-        <input v-model="draftSubject" type="text" />
-      </label>
+      <div v-if="showSettings" class="flex flex-col gap-4 p-4 overflow-auto">
+        <label>
+          {{ $t('GROUPS.TABLE.NAME') }}
+          <input v-model="draftSubject" type="text" />
+        </label>
 
-      <label>
-        {{ $t('GROUPS.DETAIL.DESCRIPTION') }}
-        <textarea v-model="draftDescription" rows="3" />
-      </label>
+        <label>
+          {{ $t('GROUPS.DETAIL.DESCRIPTION') }}
+          <textarea v-model="draftDescription" rows="3" />
+        </label>
 
-      <NextButton
-        sm
-        :label="$t('GROUPS.DETAIL.SAVE')"
-        class="w-fit"
-        @click="saveGroup"
+        <NextButton
+          sm
+          class="w-fit"
+          :label="$t('GROUPS.DETAIL.SAVE')"
+          @click="saveGroup"
+        />
+
+        <div v-if="isLoadingDetails" class="text-sm text-n-slate-11">
+          {{ $t('GROUPS.LOADING') }}
+        </div>
+
+        <template v-else-if="details">
+          <div class="flex flex-col gap-2">
+            <span class="text-sm font-medium text-n-slate-12">
+              {{ $t('GROUPS.DETAIL.INVITE') }}
+            </span>
+            <code
+              class="p-2 overflow-x-auto text-xs rounded bg-n-slate-2 text-n-slate-12"
+            >
+              {{ inviteLink }}
+            </code>
+            <div class="flex gap-2">
+              <NextButton
+                xs
+                faded
+                slate
+                :label="$t('GROUPS.DETAIL.COPY')"
+                @click="copyInvite"
+              />
+              <NextButton
+                xs
+                faded
+                ruby
+                :label="$t('GROUPS.DETAIL.REVOKE')"
+                @click="revokeInvite"
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-2">
+            <span class="text-sm font-medium text-n-slate-12">
+              {{ $t('GROUPS.DETAIL.PARTICIPANTS') }}
+            </span>
+            <div
+              v-for="p in details.participants"
+              :key="p.id"
+              class="flex items-center justify-between gap-2 py-1"
+            >
+              <span class="flex items-center gap-2 text-sm text-n-slate-11">
+                {{ displayNumber(p.id) }}
+                <span
+                  v-if="p.admin"
+                  class="px-1.5 py-0.5 text-xs rounded bg-n-slate-3 text-n-slate-11"
+                >
+                  {{
+                    p.admin === 'superadmin'
+                      ? $t('GROUPS.DETAIL.OWNER')
+                      : $t('GROUPS.DETAIL.ADMIN')
+                  }}
+                </span>
+              </span>
+              <NextButton
+                v-if="p.admin !== 'superadmin'"
+                xs
+                ghost
+                slate
+                :label="
+                  p.admin
+                    ? $t('GROUPS.DETAIL.DEMOTE')
+                    : $t('GROUPS.DETAIL.PROMOTE')
+                "
+                @click="toggleAdmin(p)"
+              />
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <ConversationBox
+        v-else-if="activeConversationId"
+        class="flex-grow min-h-0"
+        :inbox-id="0"
+        :is-contact-panel-open="false"
+        :is-on-expanded-layout="false"
       />
 
-      <div v-if="isLoadingDetails" class="text-sm text-n-slate-11">
-        {{ $t('GROUPS.LOADING') }}
+      <div v-else class="flex items-center justify-center flex-grow p-6">
+        <p class="text-sm text-center text-n-slate-11">
+          {{ $t('GROUPS.NO_THREAD_YET') }}
+        </p>
       </div>
-
-      <template v-else-if="details">
-        <div class="flex flex-col gap-2">
-          <span class="text-sm font-medium text-n-slate-12">
-            {{ $t('GROUPS.DETAIL.INVITE') }}
-          </span>
-          <code
-            class="p-2 overflow-x-auto text-xs rounded bg-n-slate-2 text-n-slate-12"
-          >
-            {{ inviteLink }}
-          </code>
-          <div class="flex gap-2">
-            <NextButton
-              xs
-              faded
-              slate
-              :label="$t('GROUPS.DETAIL.COPY')"
-              @click="copyInvite"
-            />
-            <NextButton
-              xs
-              faded
-              ruby
-              :label="$t('GROUPS.DETAIL.REVOKE')"
-              @click="revokeInvite"
-            />
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-2">
-          <span class="text-sm font-medium text-n-slate-12">
-            {{ $t('GROUPS.DETAIL.PARTICIPANTS') }}
-          </span>
-          <div
-            v-for="p in details.participants"
-            :key="p.id"
-            class="flex items-center justify-between gap-2 py-1"
-          >
-            <span class="text-sm text-n-slate-11">
-              {{ displayNumber(p.id) }}
-              <span
-                v-if="p.admin"
-                class="px-1.5 py-0.5 text-xs rounded bg-n-slate-3 text-n-slate-11"
-              >
-                {{
-                  p.admin === 'superadmin'
-                    ? $t('GROUPS.DETAIL.OWNER')
-                    : $t('GROUPS.DETAIL.ADMIN')
-                }}
-              </span>
-            </span>
-            <NextButton
-              v-if="p.admin !== 'superadmin'"
-              xs
-              ghost
-              slate
-              :label="
-                p.admin
-                  ? $t('GROUPS.DETAIL.DEMOTE')
-                  : $t('GROUPS.DETAIL.PROMOTE')
-              "
-              @click="toggleAdmin(p)"
-            />
-          </div>
-        </div>
-      </template>
     </aside>
   </div>
 </template>

@@ -14,7 +14,9 @@
       "NAME": "Grupo",
       "NUMBER": "Número",
       "PARTICIPANTS": "Pessoas",
-      "ANNOUNCE": "Só admins"
+      "ANNOUNCE": "Só admins",
+      "ACTIVITY": "Atividade",
+      "NO_THREAD": "Sem mensagens"
     },
     "DETAIL": {
       "TITLE": "Detalhes do grupo",
@@ -33,6 +35,7 @@
       "SAVED": "Grupo atualizado",
       "COPIED": "Link copiado",
       "CLOSE": "Fechar"
-    }
+    },
+    "NO_THREAD_YET": "Este grupo não enviou mensagem desde que o espelho foi conectado, então ainda não há conversa para mostrar."
   }
 }
