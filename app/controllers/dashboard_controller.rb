@@ -85,6 +85,8 @@ class DashboardController < ActionController::Base
       AZURE_APP_ID: GlobalConfigService.load('AZURE_APP_ID', ''),
       GIT_SHA: GIT_HASH,
       ALLOWED_LOGIN_METHODS: allowed_login_methods,
+      WELUCCI_HUB_LOGIN_URL: Welucci::Hub.login_url,
+      WELUCCI_HUB_ENFORCE_SSO: Welucci::Hub.enforce_sso?,
       ACTIVE_PLATFORM_BANNERS: active_platform_banners
     }
   end
@@ -99,6 +101,7 @@ class DashboardController < ActionController::Base
     methods = ['email']
     methods << 'google_oauth' if GlobalConfigService.load('ENABLE_GOOGLE_OAUTH_LOGIN', 'true').to_s != 'false'
     methods << 'saml' if ChatwootHub.pricing_plan != 'community' && GlobalConfigService.load('ENABLE_SAML_SSO_LOGIN', 'true').to_s != 'false'
+    methods << 'welucci_hub' if Welucci::Hub.configured?
     methods
   end
 

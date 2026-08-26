@@ -26,6 +26,9 @@ const ERROR_MESSAGES = {
   'business-account-only': 'LOGIN.OAUTH.BUSINESS_ACCOUNTS_ONLY',
   'saml-authentication-failed': 'LOGIN.SAML.API.ERROR_MESSAGE',
   'saml-not-enabled': 'LOGIN.SAML.API.ERROR_MESSAGE',
+  // Welucci Hub SSO — see Welucci::SsoController for where each of these comes from.
+  'sso-failed': 'LOGIN.WELUCCI_HUB.API.FAILED',
+  'sso-unavailable': 'LOGIN.WELUCCI_HUB.API.UNAVAILABLE',
 };
 
 const IMPERSONATION_URL_SEARCH_KEY = 'impersonation';
@@ -101,10 +104,30 @@ export default {
       );
     },
     showSignupLink() {
-      return window.chatwootConfig.signupEnabled === 'true';
+      return (
+        window.chatwootConfig.signupEnabled === 'true' && !this.hubOnlyLogin
+      );
     },
     showSamlLogin() {
       return this.allowedLoginMethods.includes('saml');
+    },
+    welucciHubLoginUrl() {
+      return window.chatwootConfig.welucciHubLoginUrl || '';
+    },
+    showWelucciHubLogin() {
+      return (
+        this.allowedLoginMethods.includes('welucci_hub') &&
+        Boolean(this.welucciHubLoginUrl)
+      );
+    },
+    // When the Hub is the only door, the password form is not merely discouraged — the
+    // server refuses it for @welucci.com. Showing it would invite a login that cannot
+    // succeed, so it comes off the page entirely.
+    hubOnlyLogin() {
+      return (
+        this.showWelucciHubLogin &&
+        window.chatwootConfig.welucciHubEnforceSso === true
+      );
     },
   },
   created() {
@@ -132,6 +155,12 @@ export default {
           return this.$t('LOGIN.OAUTH.NO_ACCOUNT_FOUND');
         case 'LOGIN.OAUTH.BUSINESS_ACCOUNTS_ONLY':
           return this.$t('LOGIN.OAUTH.BUSINESS_ACCOUNTS_ONLY');
+        case 'LOGIN.SAML.API.ERROR_MESSAGE':
+          return this.$t('LOGIN.SAML.API.ERROR_MESSAGE');
+        case 'LOGIN.WELUCCI_HUB.API.FAILED':
+          return this.$t('LOGIN.WELUCCI_HUB.API.FAILED');
+        case 'LOGIN.WELUCCI_HUB.API.UNAVAILABLE':
+          return this.$t('LOGIN.WELUCCI_HUB.API.UNAVAILABLE');
         case 'LOGIN.API.UNAUTH':
         default:
           return this.$t('LOGIN.API.UNAUTH');
@@ -345,8 +374,25 @@ export default {
     >
       <div v-if="!email">
         <div class="flex flex-col gap-4">
-          <GoogleOAuthButton v-if="showGoogleOAuth" />
-          <div v-if="showSamlLogin" class="text-center">
+          <a
+            v-if="showWelucciHubLogin"
+            :href="welucciHubLoginUrl"
+            class="inline-flex justify-center w-full px-4 py-3 items-center bg-n-background dark:bg-n-solid-3 rounded-md shadow-sm ring-1 ring-inset ring-n-container dark:ring-n-container focus:outline-offset-0 hover:bg-n-alpha-2 dark:hover:bg-n-alpha-2"
+          >
+            <Icon icon="i-lucide-shield-check" class="size-5 text-n-slate-11" />
+            <span class="ml-2 text-base font-medium text-n-slate-12">
+              {{ $t('LOGIN.WELUCCI_HUB.LABEL') }}
+            </span>
+          </a>
+          <p
+            v-if="hubOnlyLogin"
+            class="text-sm text-center text-n-slate-11"
+            data-testid="welucci_hub_only_notice"
+          >
+            {{ $t('LOGIN.WELUCCI_HUB.ONLY_METHOD') }}
+          </p>
+          <GoogleOAuthButton v-if="showGoogleOAuth && !hubOnlyLogin" />
+          <div v-if="showSamlLogin && !hubOnlyLogin" class="text-center">
             <router-link
               to="/app/login/sso"
               class="inline-flex justify-center w-full px-4 py-3 items-center bg-n-background dark:bg-n-solid-3 rounded-md shadow-sm ring-1 ring-inset ring-n-container dark:ring-n-container focus:outline-offset-0 hover:bg-n-alpha-2 dark:hover:bg-n-alpha-2"
@@ -361,12 +407,19 @@ export default {
             </router-link>
           </div>
           <SimpleDivider
-            v-if="showGoogleOAuth || showSamlLogin"
+            v-if="
+              (showGoogleOAuth || showSamlLogin || showWelucciHubLogin) &&
+              !hubOnlyLogin
+            "
             :label="$t('COMMON.OR')"
             class="uppercase"
           />
         </div>
-        <form class="space-y-5" @submit.prevent="submitFormLogin">
+        <form
+          v-if="!hubOnlyLogin"
+          class="space-y-5"
+          @submit.prevent="submitFormLogin"
+        >
           <FormInput
             v-model="credentials.email"
             name="email_address"

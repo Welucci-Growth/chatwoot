@@ -10,6 +10,10 @@ Rails.application.routes.draw do
 
   post 'resend_confirmation', to: 'auth/resend_confirmations#create'
 
+  # Welucci Hub SSO landing. Every Welucci app answers `/sso?token=` so the Hub can send
+  # people here with no per-app special casing. See Welucci::SsoController.
+  get '/sso', to: 'welucci/sso#show'
+
   ## renders the frontend paths only if its not an api only server
   if ActiveModel::Type::Boolean.new.cast(ENV.fetch('CW_API_ONLY_SERVER', false))
     root to: 'api#index'

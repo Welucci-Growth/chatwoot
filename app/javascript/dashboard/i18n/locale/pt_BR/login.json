@@ -36,6 +36,14 @@
       "API": {
         "ERROR_MESSAGE": "A autenticação SSO falhou. Verifique suas credenciais e tente novamente."
       }
+    },
+    "WELUCCI_HUB": {
+      "LABEL": "Entrar com o Welucci Hub",
+      "ONLY_METHOD": "Sua conta @welucci.com entra por aqui.",
+      "API": {
+        "FAILED": "Não foi possível validar seu acesso no Welucci Hub. Tente entrar novamente.",
+        "UNAVAILABLE": "O acesso pelo Welucci Hub não está configurado nesta instalação."
+      }
     }
   }
 }

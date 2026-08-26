@@ -5,6 +5,10 @@ class DeviseOverrides::PasswordsController < Devise::PasswordsController
   skip_before_action :authenticate_user!, raise: false
 
   def create
+    # A reset for a Hub-authenticated address would be a dead end: the new password could
+    # not be used to sign in. Say so instead of sending an email that leads nowhere.
+    return build_response(I18n.t('messages.reset_password_welucci_hub_user'), 422) if Welucci::Hub.enforced_email?(params[:email])
+
     @user = User.from_email(params[:email])
     @user&.send_reset_password_instructions
     build_response(I18n.t('messages.reset_password'), 200)

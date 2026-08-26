@@ -5,6 +5,10 @@ class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
   # Unpermitted parameter: session
   wrap_parameters format: []
   before_action :process_sso_auth_token, only: [:create]
+  # Registered after the line above on purpose: the guard reads the @resource that
+  # `process_sso_auth_token` sets, so it has to run second.
+  include WelucciHubSsoConcern
+  before_action :block_password_login_for_hub_users, only: [:create]
 
   def new
     redirect_to login_page_url(error: 'access-denied')

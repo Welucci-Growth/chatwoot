@@ -36,6 +36,14 @@
       "API": {
         "ERROR_MESSAGE": "SSO authentication failed. Please check your credentials and try again."
       }
+    },
+    "WELUCCI_HUB": {
+      "LABEL": "Sign in with the Welucci Hub",
+      "ONLY_METHOD": "Welucci accounts sign in here.",
+      "API": {
+        "FAILED": "We could not validate your access at the Welucci Hub. Please try signing in again.",
+        "UNAVAILABLE": "Signing in through the Welucci Hub is not configured on this installation."
+      }
     }
   }
 }

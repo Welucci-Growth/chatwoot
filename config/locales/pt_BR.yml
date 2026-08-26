@@ -31,6 +31,8 @@ pt_BR:
     reset_password: A solicitação de redefinição de senha foi realizada com sucesso. Um e-mail com instruções será enviado para o seu endereço de e-mail, caso ele exista em nosso sistema.
     reset_password_saml_user: Esta conta usa autenticação SAML. A redefinição de senha não está disponível. Por favor, contate o administrador.
     login_saml_user: Esta conta usa autenticação SAML. Por favor, faça login através do provedor SAML da sua organização.
+    login_welucci_hub_user: Esta conta entra pelo Welucci Hub. Use o botão "Entrar com o Welucci Hub".
+    reset_password_welucci_hub_user: Esta conta entra pelo Welucci Hub. A senha é redefinida lá, não aqui.
     saml_not_available: A autenticação SAML não está disponível nesta instalação.
     inbox_deletetion_response: Seu pedido de exclusão da caixa de entrada será processado dentro de algum tempo.
   data_imports:
