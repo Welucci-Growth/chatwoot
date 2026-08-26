@@ -13,18 +13,23 @@ class Whatsapp::Evolution::GroupService
 
   # A single instance takes up to 40 seconds and the whole fleet takes minutes, far beyond any
   # HTTP timeout. The dashboard therefore reads the cache and a background job fills it.
+  #
+  # Redis rather than Rails.cache on purpose: this installation's Rails.cache is a FileStore,
+  # local to each container, so a cache written by the job in Sidekiq would be invisible to
+  # the web process that has to serve it.
   def cached_groups(instance)
-    Rails.cache.read(cache_key(instance))
+    raw = ::Redis::Alfred.get(cache_key(instance))
+    raw.present? ? JSON.parse(raw, symbolize_names: true) : nil
   end
 
   def sync_groups(instance)
     groups = fetch_groups(instance)
-    Rails.cache.write(cache_key(instance), groups, expires_in: CACHE_TTL)
+    ::Redis::Alfred.setex(cache_key(instance), groups.to_json, CACHE_TTL)
     groups
   end
 
   def expire(instance)
-    expire(instance)
+    ::Redis::Alfred.delete(cache_key(instance))
   end
 
   def fetch_groups(instance)
