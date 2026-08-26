@@ -379,6 +379,13 @@ const menuItems = computed(() => {
       activeOn: ['tasks_dashboard_index'],
     },
     {
+      name: 'Groups',
+      label: t('GROUPS.TITLE'),
+      icon: 'i-lucide-users-round',
+      to: accountScopedRoute('groups_dashboard_index'),
+      activeOn: ['groups_dashboard_index'],
+    },
+    {
       name: 'Bots',
       label: t('BOTS.TITLE'),
       icon: 'i-lucide-bot',

@@ -1,0 +1,37 @@
+{
+  "GROUPS": {
+    "TITLE": "Groups",
+    "SUBTITLE": "WhatsApp groups across every connected number.",
+    "REFRESH": "Refresh",
+    "SEARCH_PLACEHOLDER": "Search by group name",
+    "ALL_NUMBERS": "All numbers",
+    "COUNT": "{count} groups",
+    "LOADING": "Loading groups. The first load talks to every connected number and can take a few seconds.",
+    "EMPTY": "No groups found.",
+    "ERROR": "Could not reach the Evolution server. Check that it is running and that the mirror inbox is configured.",
+    "TABLE": {
+      "NAME": "Group",
+      "NUMBER": "Number",
+      "PARTICIPANTS": "People",
+      "ANNOUNCE": "Admins only"
+    },
+    "DETAIL": {
+      "TITLE": "Group details",
+      "DESCRIPTION": "Description",
+      "NO_DESCRIPTION": "No description",
+      "INVITE": "Invite link",
+      "COPY": "Copy",
+      "REVOKE": "Revoke and generate a new one",
+      "REVOKE_CONFIRM": "The current link stops working immediately and anyone holding it can no longer join. Continue?",
+      "PARTICIPANTS": "Participants",
+      "ADMIN": "Admin",
+      "OWNER": "Owner",
+      "PROMOTE": "Make admin",
+      "DEMOTE": "Remove admin",
+      "SAVE": "Save changes",
+      "SAVED": "Group updated",
+      "COPIED": "Link copied",
+      "CLOSE": "Close"
+    }
+  }
+}
