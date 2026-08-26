@@ -1,5 +1,7 @@
 import advancedFilters from './advancedFilters.json';
 import agentBots from './agentBots.json';
+import bots from './bots.json';
+import groups from './groups.json';
 import agentMgmt from './agentMgmt.json';
 import attributesMgmt from './attributesMgmt.json';
 import auditLogs from './auditLogs.json';
@@ -47,6 +49,8 @@ import yearInReview from './yearInReview.json';
 export default {
   ...advancedFilters,
   ...agentBots,
+  ...bots,
+  ...groups,
   ...agentMgmt,
   ...attributesMgmt,
   ...auditLogs,

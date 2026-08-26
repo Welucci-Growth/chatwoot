@@ -38,6 +38,34 @@ const filtered = computed(() =>
 
 // Each instance is fetched on its own so the table fills in progressively and one slow
 // number never blocks the rest.
+const wait = ms =>
+  new Promise(resolve => {
+    setTimeout(resolve, ms);
+  });
+
+// The server answers immediately with whatever is cached and schedules a background refresh,
+// so an empty first answer means "come back shortly", not "no groups".
+const loadInstance = async (name, refresh) => {
+  let attempts = 0;
+  let pending = true;
+  while (pending && attempts < 20) {
+    attempts += 1;
+    // eslint-disable-next-line no-await-in-loop
+    const { data } = await EvolutionGroupsAPI.getGroupsForInstance(
+      name,
+      refresh && attempts === 1
+    );
+    pending = data.pending;
+    if (!pending) {
+      groups.value = [...groups.value, ...(data.groups || [])];
+    } else {
+      // eslint-disable-next-line no-await-in-loop
+      await wait(5000);
+    }
+  }
+  loadedCount.value += 1;
+};
+
 const loadGroups = async (refresh = false) => {
   isLoading.value = true;
   hasError.value = false;
@@ -49,15 +77,9 @@ const loadGroups = async (refresh = false) => {
     totalInstances.value = instanceNames.value.length;
 
     // Sequential on purpose: hitting every instance at once would pile requests onto the
-    // Evolution server, which is already slow per call.
+    // Evolution server, which already needs up to 40 seconds per call.
     await instanceNames.value.reduce(
-      (chain, name) =>
-        chain.then(async () => {
-          const { data: payload } =
-            await EvolutionGroupsAPI.getGroupsForInstance(name, refresh);
-          groups.value = [...groups.value, ...(payload.groups || [])];
-          loadedCount.value += 1;
-        }),
+      (chain, name) => chain.then(() => loadInstance(name, refresh)),
       Promise.resolve()
     );
   } catch (error) {

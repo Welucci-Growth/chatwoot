@@ -1,0 +1,38 @@
+{
+  "GROUPS": {
+    "TITLE": "Grupos",
+    "SUBTITLE": "Grupos de WhatsApp de todos os números conectados.",
+    "REFRESH": "Atualizar",
+    "SEARCH_PLACEHOLDER": "Buscar pelo nome do grupo",
+    "ALL_NUMBERS": "Todos os números",
+    "COUNT": "{count} grupos",
+    "LOADING": "Carregando…",
+    "LOADING_PROGRESS": "Carregando número {done} de {total}. Cada um leva alguns segundos.",
+    "EMPTY": "Nenhum grupo encontrado.",
+    "ERROR": "Não foi possível falar com o servidor Evolution. Verifique se ele está no ar e se a caixa espelho está configurada.",
+    "TABLE": {
+      "NAME": "Grupo",
+      "NUMBER": "Número",
+      "PARTICIPANTS": "Pessoas",
+      "ANNOUNCE": "Só admins"
+    },
+    "DETAIL": {
+      "TITLE": "Detalhes do grupo",
+      "DESCRIPTION": "Descrição",
+      "NO_DESCRIPTION": "Sem descrição",
+      "INVITE": "Link de convite",
+      "COPY": "Copiar",
+      "REVOKE": "Revogar e gerar outro",
+      "REVOKE_CONFIRM": "O link atual para de funcionar na hora e quem já o tem não consegue mais entrar. Continuar?",
+      "PARTICIPANTS": "Participantes",
+      "ADMIN": "Admin",
+      "OWNER": "Dono",
+      "PROMOTE": "Tornar admin",
+      "DEMOTE": "Remover admin",
+      "SAVE": "Salvar alterações",
+      "SAVED": "Grupo atualizado",
+      "COPIED": "Link copiado",
+      "CLOSE": "Fechar"
+    }
+  }
+}

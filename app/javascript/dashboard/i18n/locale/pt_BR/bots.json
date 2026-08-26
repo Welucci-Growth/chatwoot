@@ -1,0 +1,9 @@
+{
+  "BOTS": {
+    "TITLE": "Bots",
+    "NOT_CONFIGURED": {
+      "TITLE": "Os bots ainda não estão configurados",
+      "BODY": "Informe o endereço do Typebot nas configurações do Super Admin, em TYPEBOT_URL, e o construtor de fluxos abre aqui mesmo."
+    }
+  }
+}

@@ -8,11 +8,17 @@ class Api::V1::Accounts::EvolutionGroupsController < Api::V1::Accounts::BaseCont
     render json: { instances: @service.connected_instances }
   end
 
+  # Never blocks: returns whatever is cached and schedules a refresh when there is nothing yet.
   def by_instance
-    render json: { groups: @service.groups_for(instance, force: params[:refresh].present?) }
-  rescue StandardError => e
-    Rails.logger.error("[EVOLUTION_GROUPS] #{instance} failed: #{e.message}")
-    render json: { groups: [], error: e.message.first(200) }
+    @service.expire(instance) if params[:refresh].present?
+    groups = @service.cached_groups(instance)
+
+    if groups.nil?
+      Whatsapp::Evolution::GroupSyncJob.perform_later(instance)
+      render json: { groups: [], pending: true }
+    else
+      render json: { groups: groups, pending: false }
+    end
   end
 
   def details

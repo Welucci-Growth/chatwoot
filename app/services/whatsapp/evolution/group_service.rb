@@ -2,7 +2,7 @@
 # mirror inbox. Only non-messaging operations are exposed: nothing here sends a message or
 # adds a participant, which are the actions that put a number at risk.
 class Whatsapp::Evolution::GroupService
-  CACHE_TTL = 5.minutes
+  CACHE_TTL = 30.minutes
   READ_TIMEOUT = 90
 
   def connected_instances
@@ -11,13 +11,20 @@ class Whatsapp::Evolution::GroupService
       .map { |i| { name: i['name'], profile_name: i['profileName'] } }
   end
 
-  # Evolution needs tens of seconds per instance, so the dashboard asks for one instance at a
-  # time instead of one aggregate call that would outlive any HTTP timeout.
-  def groups_for(instance, force: false)
-    key = cache_key(instance)
-    Rails.cache.delete(key) if force
+  # A single instance takes up to 40 seconds and the whole fleet takes minutes, far beyond any
+  # HTTP timeout. The dashboard therefore reads the cache and a background job fills it.
+  def cached_groups(instance)
+    Rails.cache.read(cache_key(instance))
+  end
 
-    Rails.cache.fetch(key, expires_in: CACHE_TTL) { fetch_groups(instance) }
+  def sync_groups(instance)
+    groups = fetch_groups(instance)
+    Rails.cache.write(cache_key(instance), groups, expires_in: CACHE_TTL)
+    groups
+  end
+
+  def expire(instance)
+    expire(instance)
   end
 
   def fetch_groups(instance)
@@ -53,12 +60,12 @@ class Whatsapp::Evolution::GroupService
 
   def update_subject(instance, jid, subject)
     request(:post, "/group/updateGroupSubject/#{instance}", { groupJid: jid }, { subject: subject })
-    Rails.cache.delete(cache_key(instance))
+    expire(instance)
   end
 
   def update_description(instance, jid, description)
     request(:post, "/group/updateGroupDescription/#{instance}", { groupJid: jid }, { description: description })
-    Rails.cache.delete(cache_key(instance))
+    expire(instance)
   end
 
   # Only promotion and demotion are allowed. Adding or removing members is deliberately
