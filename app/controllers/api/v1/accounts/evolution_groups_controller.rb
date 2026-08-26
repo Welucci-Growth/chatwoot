@@ -2,8 +2,17 @@ class Api::V1::Accounts::EvolutionGroupsController < Api::V1::Accounts::BaseCont
   before_action :ensure_administrator
   before_action :set_service
 
+  # The dashboard loads one instance at a time; a single aggregate call would outlive the
+  # request timeout, since Evolution takes tens of seconds per instance.
   def index
-    render json: { groups: @service.all_groups(force: params[:refresh].present?) }
+    render json: { instances: @service.connected_instances }
+  end
+
+  def by_instance
+    render json: { groups: @service.groups_for(instance, force: params[:refresh].present?) }
+  rescue StandardError => e
+    Rails.logger.error("[EVOLUTION_GROUPS] #{instance} failed: #{e.message}")
+    render json: { groups: [], error: e.message.first(200) }
   end
 
   def details

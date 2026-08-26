@@ -6,8 +6,14 @@ class EvolutionGroupsAPI extends ApiClient {
     super('evolution_groups', { accountScoped: true });
   }
 
-  getGroups(refresh = false) {
-    return axios.get(this.url, { params: refresh ? { refresh: 1 } : {} });
+  getInstances() {
+    return axios.get(this.url);
+  }
+
+  getGroupsForInstance(instance, refresh = false) {
+    return axios.get(`${this.url}/by_instance`, {
+      params: { instance, ...(refresh ? { refresh: 1 } : {}) },
+    });
   }
 
   getDetails(instance, jid) {

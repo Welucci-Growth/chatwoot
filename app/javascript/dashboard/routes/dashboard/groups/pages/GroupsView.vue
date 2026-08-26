@@ -11,6 +11,8 @@ const { t } = useI18n();
 const groups = ref([]);
 const isLoading = ref(false);
 const hasError = ref(false);
+const loadedCount = ref(0);
+const totalInstances = ref(0);
 const search = ref('');
 const instanceFilter = ref('');
 
@@ -20,9 +22,8 @@ const isLoadingDetails = ref(false);
 const draftSubject = ref('');
 const draftDescription = ref('');
 
-const instances = computed(() =>
-  [...new Set(groups.value.map(g => g.instance))].sort()
-);
+const instanceNames = ref([]);
+const instances = computed(() => [...instanceNames.value].sort());
 
 const filtered = computed(() =>
   groups.value.filter(g => {
@@ -35,12 +36,30 @@ const filtered = computed(() =>
   })
 );
 
+// Each instance is fetched on its own so the table fills in progressively and one slow
+// number never blocks the rest.
 const loadGroups = async (refresh = false) => {
   isLoading.value = true;
   hasError.value = false;
+  groups.value = [];
+  loadedCount.value = 0;
   try {
-    const { data } = await EvolutionGroupsAPI.getGroups(refresh);
-    groups.value = data.groups || [];
+    const { data } = await EvolutionGroupsAPI.getInstances();
+    instanceNames.value = (data.instances || []).map(i => i.name);
+    totalInstances.value = instanceNames.value.length;
+
+    // Sequential on purpose: hitting every instance at once would pile requests onto the
+    // Evolution server, which is already slow per call.
+    await instanceNames.value.reduce(
+      (chain, name) =>
+        chain.then(async () => {
+          const { data: payload } =
+            await EvolutionGroupsAPI.getGroupsForInstance(name, refresh);
+          groups.value = [...groups.value, ...(payload.groups || [])];
+          loadedCount.value += 1;
+        }),
+      Promise.resolve()
+    );
   } catch (error) {
     hasError.value = true;
   } finally {
@@ -157,7 +176,12 @@ onMounted(() => loadGroups());
       </div>
 
       <p v-if="isLoading" class="text-sm text-n-slate-11">
-        {{ $t('GROUPS.LOADING') }}
+        {{
+          $t('GROUPS.LOADING_PROGRESS', {
+            done: loadedCount,
+            total: totalInstances,
+          })
+        }}
       </p>
       <p v-else-if="hasError" class="text-sm text-n-ruby-11">
         {{ $t('GROUPS.ERROR') }}
@@ -166,7 +190,10 @@ onMounted(() => loadGroups());
         {{ $t('GROUPS.EMPTY') }}
       </p>
 
-      <div v-else class="overflow-x-auto border rounded-lg border-n-weak">
+      <div
+        v-if="filtered.length"
+        class="overflow-x-auto border rounded-lg border-n-weak"
+      >
         <table class="w-full text-sm">
           <thead class="bg-n-slate-2">
             <tr class="text-left text-n-slate-11">

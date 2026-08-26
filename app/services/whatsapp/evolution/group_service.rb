@@ -3,7 +3,7 @@
 # adds a participant, which are the actions that put a number at risk.
 class Whatsapp::Evolution::GroupService
   CACHE_TTL = 5.minutes
-  READ_TIMEOUT = 45
+  READ_TIMEOUT = 90
 
   def connected_instances
     request(:get, '/instance/fetchInstances')
@@ -11,17 +11,16 @@ class Whatsapp::Evolution::GroupService
       .map { |i| { name: i['name'], profile_name: i['profileName'] } }
   end
 
-  # Groups across every connected instance. Evolution takes several seconds per instance,
-  # so the aggregate is cached and refreshed on demand rather than on every page load.
-  def all_groups(force: false)
-    Rails.cache.delete(cache_key) if force
+  # Evolution needs tens of seconds per instance, so the dashboard asks for one instance at a
+  # time instead of one aggregate call that would outlive any HTTP timeout.
+  def groups_for(instance, force: false)
+    key = cache_key(instance)
+    Rails.cache.delete(key) if force
 
-    Rails.cache.fetch(cache_key, expires_in: CACHE_TTL) do
-      connected_instances.flat_map { |instance| groups_for(instance[:name]) }
-    end
+    Rails.cache.fetch(key, expires_in: CACHE_TTL) { fetch_groups(instance) }
   end
 
-  def groups_for(instance)
+  def fetch_groups(instance)
     request(:get, "/group/fetchAllGroups/#{instance}", getParticipants: false).map do |g|
       {
         instance: instance,
@@ -54,12 +53,12 @@ class Whatsapp::Evolution::GroupService
 
   def update_subject(instance, jid, subject)
     request(:post, "/group/updateGroupSubject/#{instance}", { groupJid: jid }, { subject: subject })
-    invalidate_cache
+    Rails.cache.delete(cache_key(instance))
   end
 
   def update_description(instance, jid, description)
     request(:post, "/group/updateGroupDescription/#{instance}", { groupJid: jid }, { description: description })
-    invalidate_cache
+    Rails.cache.delete(cache_key(instance))
   end
 
   # Only promotion and demotion are allowed. Adding or removing members is deliberately
@@ -71,14 +70,10 @@ class Whatsapp::Evolution::GroupService
             { action: action, participants: [participant] })
   end
 
-  def invalidate_cache
-    Rails.cache.delete(cache_key)
-  end
-
   private
 
-  def cache_key
-    "evolution_groups/#{channel.id}"
+  def cache_key(instance)
+    "evolution_groups/#{channel.id}/#{instance}"
   end
 
   def channel

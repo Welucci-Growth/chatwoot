@@ -148,6 +148,7 @@ Rails.application.routes.draw do
           # so they travel as parameters instead of path segments.
           resources :evolution_groups, only: [:index] do
             collection do
+              get :by_instance
               get :details
               post :update_group
               post :revoke_invite

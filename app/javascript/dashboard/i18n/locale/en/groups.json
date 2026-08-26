@@ -6,7 +6,8 @@
     "SEARCH_PLACEHOLDER": "Search by group name",
     "ALL_NUMBERS": "All numbers",
     "COUNT": "{count} groups",
-    "LOADING": "Loading groups. The first load talks to every connected number and can take a few seconds.",
+    "LOADING": "Loading\u2026",
+    "LOADING_PROGRESS": "Loading numbers {done} of {total}. Each one takes a few seconds.",
     "EMPTY": "No groups found.",
     "ERROR": "Could not reach the Evolution server. Check that it is running and that the mirror inbox is configured.",
     "TABLE": {
