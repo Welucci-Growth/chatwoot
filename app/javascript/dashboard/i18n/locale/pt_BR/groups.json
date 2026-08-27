@@ -36,6 +36,11 @@
       "COPIED": "Link copiado",
       "CLOSE": "Fechar"
     },
-    "NO_THREAD_YET": "Este grupo não enviou mensagem desde que o espelho foi conectado, então ainda não há conversa para mostrar."
+    "NO_THREAD_YET": "Este grupo não enviou mensagem desde que o espelho foi conectado, então ainda não há conversa para mostrar.",
+    "MENU": {
+      "ALL": "Todos os grupos",
+      "ACTIVE": "Com atividade",
+      "IDLE": "Sem mensagens"
+    }
   }
 }

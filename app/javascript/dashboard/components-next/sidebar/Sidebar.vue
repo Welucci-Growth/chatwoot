@@ -382,8 +382,29 @@ const menuItems = computed(() => {
       name: 'Groups',
       label: t('GROUPS.TITLE'),
       icon: 'i-lucide-users-round',
-      to: accountScopedRoute('groups_dashboard_index'),
-      activeOn: ['groups_dashboard_index'],
+      children: [
+        {
+          name: 'AllGroups',
+          label: t('GROUPS.MENU.ALL'),
+          icon: 'i-lucide-users-round',
+          to: accountScopedRoute('groups_dashboard_index'),
+          activeOn: ['groups_dashboard_index'],
+        },
+        {
+          name: 'ActiveGroups',
+          label: t('GROUPS.MENU.ACTIVE'),
+          icon: 'i-lucide-message-square-dot',
+          to: accountScopedRoute('groups_dashboard_active'),
+          activeOn: ['groups_dashboard_active'],
+        },
+        {
+          name: 'IdleGroups',
+          label: t('GROUPS.MENU.IDLE'),
+          icon: 'i-lucide-message-square-off',
+          to: accountScopedRoute('groups_dashboard_idle'),
+          activeOn: ['groups_dashboard_idle'],
+        },
+      ],
     },
     {
       name: 'Bots',

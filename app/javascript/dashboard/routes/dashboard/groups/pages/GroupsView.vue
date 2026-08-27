@@ -8,6 +8,13 @@ import EvolutionGroupsAPI from 'dashboard/api/evolutionGroups';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import ConversationBox from 'dashboard/components/widgets/conversation/ConversationBox.vue';
 
+const props = defineProps({
+  filter: {
+    type: String,
+    default: 'all',
+  },
+});
+
 const { t } = useI18n();
 const store = useStore();
 
@@ -36,9 +43,19 @@ const filtered = computed(() =>
       .includes(search.value.toLowerCase());
     const matchesInstance =
       !instanceFilter.value || g.instance === instanceFilter.value;
-    return matchesName && matchesInstance;
+    const matchesFilter =
+      props.filter === 'all' ||
+      (props.filter === 'active' && Boolean(g.conversation_id)) ||
+      (props.filter === 'idle' && !g.conversation_id);
+    return matchesName && matchesInstance && matchesFilter;
   })
 );
+
+const heading = computed(() => {
+  if (props.filter === 'active') return t('GROUPS.MENU.ACTIVE');
+  if (props.filter === 'idle') return t('GROUPS.MENU.IDLE');
+  return t('GROUPS.TITLE');
+});
 
 // Each instance is fetched on its own so the table fills in progressively and one slow
 // number never blocks the rest.
@@ -183,7 +200,7 @@ onMounted(() => loadGroups());
       <div class="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h1 class="text-lg font-medium text-n-slate-12">
-            {{ $t('GROUPS.TITLE') }}
+            {{ heading }}
           </h1>
           <p class="mt-1 text-sm text-n-slate-11">
             {{ $t('GROUPS.SUBTITLE') }}

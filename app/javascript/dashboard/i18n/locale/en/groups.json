@@ -36,6 +36,11 @@
       "COPIED": "Link copied",
       "CLOSE": "Close"
     },
-    "NO_THREAD_YET": "This group has not sent a message since the mirror was connected, so there is no thread to show yet."
+    "NO_THREAD_YET": "This group has not sent a message since the mirror was connected, so there is no thread to show yet.",
+    "MENU": {
+      "ALL": "All groups",
+      "ACTIVE": "With activity",
+      "IDLE": "No messages"
+    }
   }
 }
