@@ -44,6 +44,7 @@ import VoiceCallBubble from './bubbles/VoiceCall.vue';
 
 import MessageError from './MessageError.vue';
 import ContextMenu from 'dashboard/modules/conversations/components/MessageContextMenu.vue';
+import { useGroupTeam } from 'dashboard/composables/useGroupTeam';
 import { useBranding } from 'shared/composables/useBranding';
 
 /**
@@ -374,6 +375,22 @@ const payloadForContextMenu = computed(() => {
   };
 });
 
+const { loadTeam, isTeamMember, addToTeam } = useGroupTeam();
+
+// WhatsApp group messages carry the participant who wrote them, which is what lets a bubble
+// be marked as coming from the team rather than from a client.
+const groupParticipant = computed(
+  () => props.contentAttributes?.group_participant || null
+);
+
+const isFromTeam = computed(() =>
+  isTeamMember(groupParticipant.value?.phone_number)
+);
+
+const canAddToTeam = computed(
+  () => Boolean(groupParticipant.value?.phone_number) && !isFromTeam.value
+);
+
 const contextMenuEnabledOptions = computed(() => {
   const hasText = !!props.content;
   const hasAttachments = !!(props.attachments && props.attachments.length > 0);
@@ -384,6 +401,7 @@ const contextMenuEnabledOptions = computed(() => {
     props.status === MESSAGE_STATUS.PROGRESS;
 
   return {
+    addToTeam: canAddToTeam.value,
     copy: hasText,
     delete:
       (hasText || hasAttachments) &&
@@ -423,6 +441,8 @@ const shouldRenderMessage = computed(() => {
   );
 });
 
+if (props.contentAttributes?.group_participant) loadTeam();
+
 function openContextMenu(e) {
   const shouldSkipContextMenu =
     e.target?.classList.contains('skip-context-menu') ||
@@ -445,6 +465,14 @@ function openContextMenu(e) {
 function closeContextMenu() {
   showContextMenu.value = false;
   contextMenuPosition.value = { x: null, y: null };
+}
+
+async function onAddToTeam() {
+  await addToTeam(
+    groupParticipant.value.phone_number,
+    groupParticipant.value.name
+  );
+  closeContextMenu();
 }
 
 function handleReplyTo() {
@@ -540,6 +568,7 @@ provideMessageContext({
       {
         'group-with-next': shouldGroupWithNext,
         'bg-n-alpha-1': showBackgroundHighlight,
+        'message-from-team': isFromTeam,
       },
     ]"
   >
@@ -596,12 +625,22 @@ provideMessageContext({
         @open="openContextMenu"
         @close="closeContextMenu"
         @reply-to="handleReplyTo"
+        @add-to-team="onAddToTeam"
       />
     </div>
   </div>
 </template>
 
 <style lang="scss">
+// Messages written by someone on the team get a distinct edge, so a group thread can be read
+// at a glance without checking who each sender is.
+.message-from-team {
+  .left-bubble,
+  .right-bubble {
+    @apply ring-1 ring-n-teal-8;
+  }
+}
+
 .group-with-next + .message-bubble-container {
   .left-bubble {
     @apply ltr:rounded-tl-sm rtl:rounded-tr-sm;

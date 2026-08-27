@@ -47,7 +47,7 @@ export default {
       default: false,
     },
   },
-  emits: ['open', 'close', 'replyTo'],
+  emits: ['open', 'close', 'replyTo', 'addToTeam'],
   setup() {
     const { getPlainText } = useMessageFormatter();
 
@@ -208,6 +208,15 @@ export default {
       @close="handleClose"
     >
       <div class="menu-container">
+        <MenuItem
+          v-if="enabledOptions['addToTeam']"
+          :option="{
+            icon: 'person-add',
+            label: $t('CONVERSATION.CONTEXT_MENU.ADD_TO_TEAM'),
+          }"
+          variant="icon"
+          @click.stop="$emit('addToTeam')"
+        />
         <MenuItem
           v-if="enabledOptions['replyTo']"
           :option="{
