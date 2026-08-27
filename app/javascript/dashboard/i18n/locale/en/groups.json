@@ -62,6 +62,7 @@
       "ANSWERED": "Answered",
       "IDLE": "No activity",
       "WAITING_FOR": "Waiting {duration}"
-    }
+    },
+    "PARTIAL_ERROR": "These numbers did not answer and are missing from the list: {numbers}. Use Refresh to try them again."
   }
 }

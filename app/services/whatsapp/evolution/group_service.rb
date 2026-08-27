@@ -130,17 +130,33 @@ class Whatsapp::Evolution::GroupService
   def reply_status(conversation)
     last = conversation.messages.max_by(&:id)
     return { status: 'idle' } if last.blank?
-    return { status: 'answered' } if last.outgoing? || team_phones.include?(participant_of(last))
+    return { status: 'answered' } if last.outgoing? || from_team?(last)
 
-    { status: 'waiting', waiting_since: last.created_at, waiting_from: last.content_attributes.dig('group_participant', 'name') }
+    { status: 'waiting', waiting_since: last.created_at, waiting_from: sender_name(last) }
   end
 
-  def participant_of(message)
-    message.content_attributes.dig('group_participant', 'phone_number')
+  def from_team?(message)
+    phone = message.content_attributes.dig('group_participant', 'phone_number')
+    return team_phones.include?(phone) if phone.present?
+
+    # Messages that predate participant capture only carry the sender's name glued to the
+    # body, so fall back to matching that against the roster rather than calling every old
+    # message a client and raising false alarms.
+    name = sender_name(message)
+    name.present? && team_names.include?(name.downcase)
+  end
+
+  def sender_name(message)
+    message.content_attributes.dig('group_participant', 'name').presence ||
+      message.content.to_s[/\A([^:\n]{2,40}):\s/, 1]
   end
 
   def team_phones
     @team_phones ||= GroupTeamMember.phone_numbers_for(channel.account).to_set
+  end
+
+  def team_names
+    @team_names ||= GroupTeamMember.where(account: channel.account).pluck(:name).compact_blank.map(&:downcase).to_set
   end
 
   def seen_at(conversation)

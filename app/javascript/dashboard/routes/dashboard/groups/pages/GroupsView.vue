@@ -93,22 +93,30 @@ const wait = ms =>
 
 // The server answers immediately with whatever is cached and schedules a background refresh,
 // so an empty first answer means "come back shortly", not "no groups".
+const failedInstances = ref([]);
+
 const loadInstance = async (name, refresh) => {
   let attempts = 0;
   let pending = true;
   while (pending && attempts < 20) {
     attempts += 1;
-    // eslint-disable-next-line no-await-in-loop
-    const { data } = await EvolutionGroupsAPI.getGroupsForInstance(
-      name,
-      refresh && attempts === 1
-    );
-    pending = data.pending;
-    if (!pending) {
-      groups.value = [...groups.value, ...(data.groups || [])];
-    } else {
+    try {
       // eslint-disable-next-line no-await-in-loop
-      await wait(5000);
+      const { data } = await EvolutionGroupsAPI.getGroupsForInstance(
+        name,
+        refresh && attempts === 1
+      );
+      pending = data.pending;
+      if (!pending) {
+        groups.value = [...groups.value, ...(data.groups || [])];
+      } else {
+        // eslint-disable-next-line no-await-in-loop
+        await wait(5000);
+      }
+    } catch (error) {
+      // One unreachable number must not cost us the other six.
+      failedInstances.value = [...failedInstances.value, name];
+      pending = false;
     }
   }
   loadedCount.value += 1;
@@ -119,6 +127,7 @@ const loadGroups = async (refresh = false) => {
   hasError.value = false;
   groups.value = [];
   loadedCount.value = 0;
+  failedInstances.value = [];
   try {
     const { data } = await EvolutionGroupsAPI.getInstances();
     instanceNames.value = (data.instances || []).map(i => i.name);
@@ -270,8 +279,16 @@ onMounted(() => loadGroups());
           })
         }}
       </p>
-      <p v-else-if="hasError" class="text-sm text-n-ruby-11">
+      <p v-if="hasError" class="mb-3 text-sm text-n-ruby-11">
         {{ $t('GROUPS.ERROR') }}
+      </p>
+      <p
+        v-else-if="failedInstances.length"
+        class="mb-3 text-sm text-n-amber-11"
+      >
+        {{
+          $t('GROUPS.PARTIAL_ERROR', { numbers: failedInstances.join(', ') })
+        }}
       </p>
       <p v-else-if="!filtered.length" class="text-sm text-n-slate-11">
         {{ $t('GROUPS.EMPTY') }}

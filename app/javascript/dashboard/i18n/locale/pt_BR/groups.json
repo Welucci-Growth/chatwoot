@@ -62,6 +62,7 @@
       "ANSWERED": "Respondido",
       "IDLE": "Sem atividade",
       "WAITING_FOR": "Aguardando há {duration}"
-    }
+    },
+    "PARTIAL_ERROR": "Estes números não responderam e ficaram de fora da lista: {numbers}. Use Atualizar para tentar de novo."
   }
 }
