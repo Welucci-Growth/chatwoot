@@ -51,6 +51,33 @@ const filtered = computed(() =>
   })
 );
 
+const WAITING_FIRST = { waiting: 0, answered: 1, idle: 2 };
+
+// Waiting groups rise to the top and the longest wait leads, so the list answers "what needs
+// me right now" without anyone having to sort it.
+const ordered = computed(() =>
+  [...filtered.value].sort((a, b) => {
+    const rank = WAITING_FIRST[a.status] - WAITING_FIRST[b.status];
+    if (rank !== 0) return rank;
+    if (a.status === 'waiting') {
+      return new Date(a.waiting_since) - new Date(b.waiting_since);
+    }
+    return (
+      new Date(b.last_activity_at || 0) - new Date(a.last_activity_at || 0)
+    );
+  })
+);
+
+const waitingLabel = group => {
+  if (!group.waiting_since) return '';
+  const minutes = Math.floor(
+    (Date.now() - new Date(group.waiting_since)) / 60000
+  );
+  if (minutes < 60) return `${minutes}min`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
+};
+
 const heading = computed(() => {
   if (props.filter === 'active') return t('GROUPS.MENU.ACTIVE');
   if (props.filter === 'idle') return t('GROUPS.MENU.IDLE');
@@ -270,13 +297,16 @@ onMounted(() => loadGroups());
                 {{ $t('GROUPS.TABLE.ANNOUNCE') }}
               </th>
               <th class="px-4 py-2 font-medium">
+                {{ $t('GROUPS.TABLE.STATUS') }}
+              </th>
+              <th class="px-4 py-2 font-medium">
                 {{ $t('GROUPS.TABLE.ACTIVITY') }}
               </th>
             </tr>
           </thead>
           <tbody>
             <tr
-              v-for="group in filtered"
+              v-for="group in ordered"
               :key="group.jid"
               class="border-t cursor-pointer border-n-weak hover:bg-n-slate-2"
               @click="openGroup(group)"
@@ -292,6 +322,27 @@ onMounted(() => loadGroups());
                   class="inline-block size-4 i-lucide-check text-n-teal-11"
                   :title="$t('GROUPS.TABLE.ANNOUNCE')"
                 />
+              </td>
+              <td class="px-4 py-2">
+                <span
+                  v-if="group.status === 'waiting'"
+                  class="px-2 py-0.5 text-xs rounded-full bg-n-amber-3 text-n-amber-11 whitespace-nowrap"
+                >
+                  {{
+                    $t('GROUPS.STATUS.WAITING_FOR', {
+                      duration: waitingLabel(group),
+                    })
+                  }}
+                </span>
+                <span
+                  v-else-if="group.status === 'answered'"
+                  class="px-2 py-0.5 text-xs rounded-full bg-n-teal-3 text-n-teal-11"
+                >
+                  {{ $t('GROUPS.STATUS.ANSWERED') }}
+                </span>
+                <span v-else class="text-xs text-n-slate-10">
+                  {{ $t('GROUPS.STATUS.IDLE') }}
+                </span>
               </td>
               <td class="px-4 py-2 text-n-slate-11">
                 <span
