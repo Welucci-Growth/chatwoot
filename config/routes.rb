@@ -146,6 +146,9 @@ Rails.application.routes.draw do
           resources :dashboard_apps, only: [:index, :show, :create, :update, :destroy]
           # Group ids are JIDs ending in ".us", which Rails would read as a format segment,
           # so they travel as parameters instead of path segments.
+          resources :group_team_members, only: [:index, :create, :destroy] do
+            post :sync, on: :collection
+          end
           resources :evolution_groups, only: [:index] do
             collection do
               get :by_instance

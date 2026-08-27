@@ -42,6 +42,28 @@ class Whatsapp::IncomingMessageEvolutionService < Whatsapp::IncomingMessageBaseS
     file
   end
 
+  # Chatwoot has no notion of a participant, so the sender of a group message would otherwise
+  # survive only as text glued to the body. Storing the number structurally is what allows a
+  # group to be split into staff and clients later.
+  def message_content_attributes(message)
+    attrs = super
+    return attrs unless group?
+
+    attrs.merge(
+      group_participant: {
+        phone_number: participant_phone,
+        name: data[:pushName]
+      }.compact_blank
+    )
+  end
+
+  # WhatsApp now addresses participants by an opaque LID; the real number rides alongside it.
+  def participant_phone
+    jid = message_key[:participantAlt].presence || message_key[:participant]
+    digits = jid.to_s.split('@').first.to_s
+    digits.match?(/\A\d{8,15}\z/) ? digits : nil
+  end
+
   def translated_payload
     return { message_echoes: [message_payload] } if from_me?
 

@@ -1,5 +1,6 @@
 import { frontendURL } from '../../../helper/URLHelper';
 import GroupsView from './pages/GroupsView.vue';
+import GroupTeamView from './pages/GroupTeamView.vue';
 
 // One route per sidebar entry so the active item highlights, all rendering the same view
 // with a different filter.
@@ -21,4 +22,12 @@ export const routes = [
     'active'
   ),
   view('accounts/:accountId/groups/idle', 'groups_dashboard_idle', 'idle'),
+  {
+    path: frontendURL('accounts/:accountId/groups/team'),
+    name: 'groups_dashboard_team',
+    component: GroupTeamView,
+    meta: {
+      permissions: ['administrator'],
+    },
+  },
 ];

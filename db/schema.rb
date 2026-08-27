@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_14_000000) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_27_000000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1019,6 +1019,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_14_000000) do
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "group_team_members", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "phone_number", null: false
+    t.string "name"
+    t.string "source", default: "manual", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "phone_number"], name: "index_group_team_members_on_account_id_and_phone_number", unique: true
+    t.index ["account_id"], name: "index_group_team_members_on_account_id"
   end
 
   create_table "inbox_assignment_policies", force: :cascade do |t|

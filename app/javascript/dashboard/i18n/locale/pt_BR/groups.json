@@ -16,7 +16,8 @@
       "PARTICIPANTS": "Pessoas",
       "ANNOUNCE": "Só admins",
       "ACTIVITY": "Atividade",
-      "NO_THREAD": "Sem mensagens"
+      "NO_THREAD": "Sem mensagens",
+      "STATUS": "Status"
     },
     "DETAIL": {
       "TITLE": "Detalhes do grupo",
@@ -41,6 +42,26 @@
       "ALL": "Todos os grupos",
       "ACTIVE": "Com atividade",
       "IDLE": "Sem mensagens"
+    },
+    "TEAM": {
+      "TITLE": "Equipe",
+      "SUBTITLE": "Quem está nesta lista conta como equipe dentro dos grupos. Todo o resto que escrever é tratado como cliente, e é assim que um grupo passa a aparecer como aguardando resposta.",
+      "SYNC": "Importar dos números",
+      "SYNCED": "Equipe importada dos números conectados",
+      "PHONE": "Telefone",
+      "PHONE_PLACEHOLDER": "5511999999999",
+      "NAME": "Nome",
+      "ADD": "Adicionar",
+      "SOURCE": "Origem",
+      "FROM_INSTANCE": "Número conectado",
+      "MANUAL": "Adicionado à mão",
+      "REMOVE": "Remover"
+    },
+    "STATUS": {
+      "WAITING": "Aguardando",
+      "ANSWERED": "Respondido",
+      "IDLE": "Sem atividade",
+      "WAITING_FOR": "Aguardando há {duration}"
     }
   }
 }

@@ -16,7 +16,8 @@
       "PARTICIPANTS": "People",
       "ANNOUNCE": "Admins only",
       "ACTIVITY": "Activity",
-      "NO_THREAD": "No messages yet"
+      "NO_THREAD": "No messages yet",
+      "STATUS": "Status"
     },
     "DETAIL": {
       "TITLE": "Group details",
@@ -41,6 +42,26 @@
       "ALL": "All groups",
       "ACTIVE": "With activity",
       "IDLE": "No messages"
+    },
+    "TEAM": {
+      "TITLE": "Team",
+      "SUBTITLE": "Anyone on this list counts as staff inside a group. Everyone else who writes is treated as a client, which is how a group gets flagged as waiting for a reply.",
+      "SYNC": "Import from the numbers",
+      "SYNCED": "Team imported from the connected numbers",
+      "PHONE": "Phone",
+      "PHONE_PLACEHOLDER": "5511999999999",
+      "NAME": "Name",
+      "ADD": "Add",
+      "SOURCE": "Origin",
+      "FROM_INSTANCE": "Connected number",
+      "MANUAL": "Added by hand",
+      "REMOVE": "Remove"
+    },
+    "STATUS": {
+      "WAITING": "Waiting",
+      "ANSWERED": "Answered",
+      "IDLE": "No activity",
+      "WAITING_FOR": "Waiting {duration}"
     }
   }
 }

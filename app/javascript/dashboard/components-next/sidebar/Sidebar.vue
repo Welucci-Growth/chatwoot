@@ -404,6 +404,13 @@ const menuItems = computed(() => {
           to: accountScopedRoute('groups_dashboard_idle'),
           activeOn: ['groups_dashboard_idle'],
         },
+        {
+          name: 'GroupTeam',
+          label: t('GROUPS.TEAM.TITLE'),
+          icon: 'i-lucide-contact-round',
+          to: accountScopedRoute('groups_dashboard_team'),
+          activeOn: ['groups_dashboard_team'],
+        },
       ],
     },
     {

@@ -42,6 +42,20 @@ class Whatsapp::Evolution::GroupService
     ::Redis::Alfred.delete(cache_key(instance))
   end
 
+  # The numbers running the instances are the staff phones, so the roster seeds itself and
+  # agents only have to add the people who use their own devices.
+  def sync_team_from_instances
+    request(:get, '/instance/fetchInstances').each do |i|
+      phone = i['number'].presence || i['ownerJid'].to_s.split('@').first
+      next if phone.blank?
+
+      member = GroupTeamMember.find_or_initialize_by(account: channel.account, phone_number: phone)
+      member.name = i['profileName'].presence || i['name']
+      member.source = 'instance'
+      member.save!
+    end
+  end
+
   def fetch_groups(instance)
     request(:get, "/group/fetchAllGroups/#{instance}", getParticipants: false).map do |g|
       {
@@ -107,8 +121,26 @@ class Whatsapp::Evolution::GroupService
         message_count: conversation.messages.size,
         unread_count: conversation.messages.count { |m| m.incoming? && m.created_at > seen_at(conversation) },
         last_activity_at: conversation.last_activity_at
-      }
+      }.merge(reply_status(conversation))
     end
+  end
+
+  # A group is waiting when the newest message came from someone outside the team, which is
+  # the signal an agent actually needs: a client spoke and nobody answered.
+  def reply_status(conversation)
+    last = conversation.messages.max_by(&:id)
+    return { status: 'idle' } if last.blank?
+    return { status: 'answered' } if last.outgoing? || team_phones.include?(participant_of(last))
+
+    { status: 'waiting', waiting_since: last.created_at, waiting_from: last.content_attributes.dig('group_participant', 'name') }
+  end
+
+  def participant_of(message)
+    message.content_attributes.dig('group_participant', 'phone_number')
+  end
+
+  def team_phones
+    @team_phones ||= GroupTeamMember.phone_numbers_for(channel.account).to_set
   end
 
   def seen_at(conversation)
