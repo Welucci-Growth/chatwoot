@@ -156,7 +156,7 @@ class Whatsapp::Evolution::GroupService
   end
 
   def team_names
-    @team_names ||= GroupTeamMember.where(account: channel.account).pluck(:name).compact_blank.map(&:downcase).to_set
+    @team_names ||= GroupTeamMember.where(account: channel.account).pluck(:name).compact_blank.to_set(&:downcase)
   end
 
   def seen_at(conversation)
