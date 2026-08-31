@@ -2,7 +2,12 @@ class Api::V1::Accounts::LuciSettingsController < Api::V1::Accounts::BaseControl
   before_action :ensure_allowed
 
   def show
-    render json: { settings: settings, models: LuciSetting::MODELS, inboxes: bot_inboxes }
+    render json: {
+      settings: settings,
+      models: LuciSetting::MODELS,
+      inboxes: bot_inboxes,
+      stats: stats
+    }
   end
 
   def update
@@ -18,6 +23,22 @@ class Api::V1::Accounts::LuciSettingsController < Api::V1::Accounts::BaseControl
 
   def permitted_params
     params.permit(:system_prompt, :knowledge, :model, :required_label, :enabled)
+  end
+
+  # What she actually did, so the screen reports reality instead of only holding settings.
+  def stats
+    bot = Current.account.agent_bots.find_by(name: 'LUCI')
+    since = 30.days.ago
+    handled = Conversation.where(account_id: Current.account.id)
+                          .joins(:taggings).where(taggings: { tag_id: luci_tag_id })
+                          .where('conversations.created_at > ?', since).count
+    replies = bot ? Message.where(account_id: Current.account.id, sender: bot).where('created_at > ?', since).count : 0
+
+    { conversations: handled, replies: replies, since_days: 30 }
+  end
+
+  def luci_tag_id
+    ActsAsTaggableOn::Tag.where(name: settings.required_label).select(:id)
   end
 
   # Which inboxes LUCI currently answers on, so the screen states it rather than implying it.

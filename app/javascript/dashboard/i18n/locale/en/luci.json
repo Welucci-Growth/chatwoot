@@ -1,28 +1,52 @@
 {
   "LUCI": {
-    "TITLE": "LUCI",
-    "SUBTITLE": "Your support assistant. Everything here takes effect on the next message — no restart needed.",
+    "TITLE": "Luci IA",
+    "SUBTITLE": "Your support assistant. Changes here take effect on the next message.",
     "LOADING": "Loading…",
-    "SAVED": "LUCI updated",
-    "SAVE": "Save",
+    "SAVED": "Luci updated",
+    "SAVE": "Save changes",
     "SAVE_ERROR": "Could not save. Try again.",
-    "ENABLED": "LUCI is on",
-    "ACTIVE_ON": "Answering on: {inboxes}",
-    "NO_INBOX": "no inbox yet — link her under Settings, Bots",
-    "LABEL_RULE": "Only in conversations carrying the \\u201c{label}\\u201d label.",
+    "ENABLED": "Turn Luci on",
+    "STATUS": {
+      "LIVE": "Answering right now",
+      "IDLE": "Not answering"
+    },
+    "ACTIVE_ON": "On: {inboxes}",
+    "NO_INBOX": "Not linked to any inbox yet — link her under Settings, Bots",
+    "STATS": {
+      "CONVERSATIONS": "conversations in {days} days",
+      "REPLIES": "replies sent in {days} days",
+      "LABEL": "label that activates her"
+    },
+    "SKILLS": {
+      "TITLE": "What she can do on her own",
+      "SUBTITLE": "She decides when to use each one — no configuration needed.",
+      "RECORD": {
+        "TITLE": "Record details",
+        "BODY": "Saves the event type, date and notes onto the conversation as the client mentions them."
+      },
+      "CLASSIFY": {
+        "TITLE": "Classify",
+        "BODY": "Tags the conversation as quote, question, complaint, scheduling or after-sales."
+      },
+      "HANDOFF": {
+        "TITLE": "Call a human",
+        "BODY": "Steps aside and returns the conversation to the team queue when it needs a person."
+      }
+    },
     "MODEL": "Model",
     "PROMPT": "Instructions",
-    "PROMPT_PLACEHOLDER": "Who LUCI is, how she writes, what she must never say, and when to call a human.",
+    "PROMPT_PLACEHOLDER": "Who Luci is, how she writes, what she must never say, and when to call a human.",
     "PROMPT_HINT": "Her personality and rules. Be specific about when she should hand a conversation over.",
     "KNOWLEDGE": "Knowledge base",
     "KNOWLEDGE_PLACEHOLDER": "Services, how the process works, frequently asked questions, what she must not promise.",
-    "KNOWLEDGE_HINT": "What she knows about the company. The longer this gets, the cheaper each message becomes — this part is cached.",
+    "KNOWLEDGE_HINT": "What she knows about the company. The longer it gets, the cheaper each message becomes — this part is cached.",
     "LABEL": "Label that activates her",
-    "LABEL_HINT": "Add this label to a conversation and LUCI takes part. Remove it and she stops.",
+    "LABEL_HINT": "Add this label to a conversation and Luci takes part. Remove it and she stops.",
     "MODEL_COST": {
-      "HAIKU": "Cheapest. Good for everyday support.",
-      "SONNET": "Middle ground, about twice the cost of Haiku.",
-      "OPUS": "Most capable, about five times the cost of Haiku."
+      "HAIKU": "Cheapest. Enough for everyday support.",
+      "SONNET": "Middle ground, about twice Haiku.",
+      "OPUS": "Most capable, about five times Haiku."
     }
   }
 }
