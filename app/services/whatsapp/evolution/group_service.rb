@@ -2,7 +2,9 @@
 # mirror inbox. Only non-messaging operations are exposed: nothing here sends a message or
 # adds a participant, which are the actions that put a number at risk.
 class Whatsapp::Evolution::GroupService
-  READ_TIMEOUT = 90
+  # The largest numbers carry well over a hundred groups and Evolution answers slowly for
+  # them; this runs in a background job, so waiting longer costs nobody anything.
+  READ_TIMEOUT = 240
 
   def channel_for?(account)
     Channel::Whatsapp.exists?(provider: 'evolution', account_id: account.id)

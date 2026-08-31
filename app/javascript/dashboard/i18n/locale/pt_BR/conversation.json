@@ -346,7 +346,8 @@
       "UNMUTE": "Desilenciar microfone",
       "VIEW_CHAT_HISTORY": "Ver histórico da conversa",
       "GO_TO_CONVERSATION": "Ir para a conversa"
-    }
+    },
+    "READ_ONLY_INBOX": "Esta caixa espelha o WhatsApp em modo somente leitura. Responda pelo aplicativo do WhatsApp."
   },
   "EMAIL_TRANSCRIPT": {
     "TITLE": "Enviar transcrição de conversa",
