@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
@@ -7,6 +7,9 @@ import { useStore } from 'vuex';
 import EvolutionGroupsAPI from 'dashboard/api/evolutionGroups';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import ConversationBox from 'dashboard/components/widgets/conversation/ConversationBox.vue';
+import { emitter } from 'shared/helpers/mitt';
+import { BUS_EVENTS } from 'shared/constants/busEvents';
+import { useGroupTeam } from 'dashboard/composables/useGroupTeam';
 
 const props = defineProps({
   filter: {
@@ -227,7 +230,47 @@ const toggleAdmin = async participant => {
 
 const displayNumber = id => `+${String(id).split('@')[0]}`;
 
-onMounted(() => loadGroups());
+const { loadTeam, isTeamMember } = useGroupTeam();
+
+// The websocket already carries every new message to the dashboard, so the monitor updates
+// itself instead of waiting for the next cache refresh.
+const onMessageCreated = message => {
+  const index = groups.value.findIndex(
+    g => g.conversation_id === message.conversation_id
+  );
+  if (index === -1) return;
+
+  const participant = message.content_attributes?.group_participant;
+  // message_type arrives as the numeric enum over the socket, but tolerate the label too.
+  const isOutgoing =
+    message.message_type === 1 || message.message_type === 'outgoing';
+  const fromTeam = isOutgoing || isTeamMember(participant?.phone_number);
+
+  const updated = {
+    ...groups.value[index],
+    message_count: (groups.value[index].message_count || 0) + 1,
+    last_activity_at: message.created_at,
+    status: fromTeam ? 'answered' : 'waiting',
+    waiting_since: fromTeam ? null : new Date().toISOString(),
+    waiting_from: fromTeam ? null : participant?.name,
+  };
+
+  groups.value = [
+    ...groups.value.slice(0, index),
+    updated,
+    ...groups.value.slice(index + 1),
+  ];
+};
+
+onMounted(() => {
+  loadTeam();
+  loadGroups();
+  emitter.on(BUS_EVENTS.MESSAGE_CREATED, onMessageCreated);
+});
+
+onUnmounted(() => {
+  emitter.off(BUS_EVENTS.MESSAGE_CREATED, onMessageCreated);
+});
 </script>
 
 <template>

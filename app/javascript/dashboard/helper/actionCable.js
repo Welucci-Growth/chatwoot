@@ -134,6 +134,9 @@ class ActionCableConnector extends BaseActionCableConnector {
       lastActivityAt,
       conversationId,
     });
+    // Lets views that are not driven by the conversation store — the group monitor — react to
+    // new messages without polling.
+    emitter.emit(BUS_EVENTS.MESSAGE_CREATED, data);
   };
 
   // eslint-disable-next-line class-methods-use-this
