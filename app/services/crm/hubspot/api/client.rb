@@ -3,6 +3,9 @@ class Crm::Hubspot::Api::Client
   base_uri 'https://api.hubapi.com'
 
   PAGE_SIZE = 100
+  BATCH_SIZE = 100
+  # Well under HubSpot's 19 requests per second, leaving room for the rest of the app.
+  MAX_PER_SECOND = 8
   DEAL_PROPERTIES = %w[
     dealname dealstage pipeline amount closedate createdate hs_lastmodifieddate
     hubspot_owner_id dealtype description hs_deal_stage_probability
@@ -41,14 +44,31 @@ class Crm::Hubspot::Api::Client
            ])
   end
 
-  def contacts_for_deal(deal_id)
-    body = request(:get, "/crm/v4/objects/deals/#{deal_id}/associations/contacts")
-    Array(body['results']).filter_map { |r| r['toObjectId'] }
+  # Asking per deal would cost one request each — over thirteen thousand for a single
+  # pipeline, which would exhaust HubSpot's 190-per-10-seconds budget. The batch endpoints
+  # take a hundred at a time and bring the same work down to a few dozen calls.
+  def deal_contact_ids(deal_ids)
+    return {} if deal_ids.blank?
+
+    deal_ids.each_slice(BATCH_SIZE).with_object({}) do |slice, index|
+      body = request(:post, '/crm/v4/associations/deals/contacts/batch/read',
+                     body: { inputs: slice.map { |id| { id: id.to_s } } }.to_json)
+      Array(body['results']).each do |result|
+        contact_id = Array(result['to']).first&.dig('toObjectId')
+        index[result.dig('from', 'id').to_s] = contact_id if contact_id.present?
+      end
+    end
   end
 
-  def contact(contact_id)
-    request(:get, "/crm/v3/objects/contacts/#{contact_id}",
-            query: { properties: 'email,phone,firstname,lastname' })
+  def contacts(contact_ids)
+    return {} if contact_ids.blank?
+
+    contact_ids.uniq.each_slice(BATCH_SIZE).with_object({}) do |slice, index|
+      body = request(:post, '/crm/v3/objects/contacts/batch/read',
+                     body: { inputs: slice.map { |id| { id: id.to_s } },
+                             properties: %w[email phone firstname lastname] }.to_json)
+      Array(body['results']).each { |contact| index[contact['id'].to_s] = contact }
+    end
   end
 
   def deal_properties
@@ -95,6 +115,7 @@ class Crm::Hubspot::Api::Client
   end
 
   def request(method, path, options = {})
+    throttle
     response = self.class.public_send(method, path, options.merge(headers: headers, timeout: 60))
     raise ApiError, "HubSpot #{method.to_s.upcase} #{path}: #{response.code} #{response.body.to_s.first(200)}" unless response.success?
 
@@ -103,5 +124,18 @@ class Crm::Hubspot::Api::Client
 
   def headers
     { 'Authorization' => "Bearer #{@access_token}", 'Content-Type' => 'application/json' }
+  end
+
+  # Paces the client so a large import never becomes a burst. HubSpot answers 429 when the
+  # budget runs out, and that budget is shared with everything else the account does.
+  def throttle
+    @request_times ||= []
+    now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    @request_times.reject! { |t| now - t > 1.0 }
+    if @request_times.size >= MAX_PER_SECOND
+      sleep(1.0 - (now - @request_times.first))
+      @request_times.clear
+    end
+    @request_times << Process.clock_gettime(Process::CLOCK_MONOTONIC)
   end
 end

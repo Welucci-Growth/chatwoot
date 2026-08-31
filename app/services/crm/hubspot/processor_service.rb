@@ -1,9 +1,12 @@
 class Crm::Hubspot::ProcessorService
   SOURCE = 'hubspot'.freeze
 
-  def initialize(hook)
+  def initialize(hook, contact_index: nil)
     @hook = hook
     @account = hook.account
+    # Resolved in bulk by the caller when importing many deals, so the processor never
+    # issues one API call per card.
+    @contact_index = contact_index
   end
 
   # Turns one HubSpot deal into the card that mirrors it. Running twice updates the card
@@ -18,6 +21,29 @@ class Crm::Hubspot::ProcessorService
     column_id = settings.dig('stage_columns', props['dealstage'].to_s) || board.task_columns.first.id
 
     upsert_task(external_id, board, column_id, deal_attributes(deal, props, external_id))
+  end
+
+  # Public so the bulk sync reuses the same matching rules instead of copying them.
+  # Caches the HubSpot id on the Chatwoot contact so later runs match without a lookup.
+  def link_contact(hubspot_id, person)
+    cached = @account.contacts.where("contacts.additional_attributes -> 'external' ->> 'hubspot_id' = ?", hubspot_id.to_s).first
+    return cached if cached.present?
+    return nil if person.blank?
+
+    contact = match_contact(person)
+    return nil if contact.blank?
+
+    contact.additional_attributes = contact.additional_attributes.deep_merge('external' => { 'hubspot_id' => hubspot_id.to_s })
+    contact.save!
+    contact
+  end
+
+  def match_contact(person)
+    props = person['properties'] || {}
+    email = props['email'].to_s.downcase.presence
+    phone = props['phone'].presence
+
+    (email && @account.contacts.from_email(email)) || (phone && @account.contacts.find_by(phone_number: phone))
   end
 
   private
@@ -97,35 +123,21 @@ class Crm::Hubspot::ProcessorService
   # Links the card to the Chatwoot contact, caching the HubSpot id on the contact so
   # later syncs skip the API calls.
   def contact_for(deal_id)
-    @contacts_by_deal ||= {}
-    return @contacts_by_deal[deal_id] if @contacts_by_deal.key?(deal_id)
+    return @contact_index[deal_id.to_s] if @contact_index.present?
 
-    @contacts_by_deal[deal_id] = resolve_contact(deal_id)
+    @contacts_by_deal ||= {}
+    @contacts_by_deal[deal_id] ||= resolve_single(deal_id)
   end
 
-  def resolve_contact(deal_id)
-    hubspot_id = client.contacts_for_deal(deal_id).first
+  # Used by the webhook path, where a single deal arrives on its own and batching would
+  # not save anything.
+  def resolve_single(deal_id)
+    hubspot_id = client.deal_contact_ids([deal_id])[deal_id.to_s]
     return nil if hubspot_id.blank?
 
-    cached = @account.contacts.where("contacts.additional_attributes -> 'external' ->> 'hubspot_id' = ?", hubspot_id.to_s).first
-    return cached if cached.present?
-
-    contact = match_contact(client.contact(hubspot_id))
-    return nil if contact.blank?
-
-    contact.additional_attributes = contact.additional_attributes.deep_merge('external' => { 'hubspot_id' => hubspot_id.to_s })
-    contact.save!
-    contact
+    link_contact(hubspot_id, client.contacts([hubspot_id])[hubspot_id.to_s])
   rescue Crm::Hubspot::Api::Client::ApiError
     nil
-  end
-
-  def match_contact(person)
-    props = person['properties'] || {}
-    email = props['email'].to_s.downcase.presence
-    phone = props['phone'].presence
-
-    (email && @account.contacts.from_email(email)) || (phone && @account.contacts.find_by(phone_number: phone))
   end
 
   def deal_url(deal_id)
