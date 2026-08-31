@@ -341,6 +341,7 @@ hubspot:
       'properties':
         {
           'access_token': { 'type': 'string' },
+          'client_secret': { 'type': 'string' },
           'portal_id': { 'type': 'string' },
           'pipeline_ids': { 'type': 'string' },
           'board_ids': { 'type': 'object' },
@@ -361,6 +362,12 @@ hubspot:
         'validation': 'required',
         'validationName': 'Token',
         'help': 'HubSpot → Configurações → Integrações → Apps privados → token de acesso. Precisa dos escopos de leitura de negócios, contatos e propriedades.',
+      },
+      {
+        'label': 'Client secret do app',
+        'type': 'text',
+        'name': 'client_secret',
+        'help': 'Só se você configurou webhooks num app de desenvolvedor. Usado para conferir a assinatura das entregas. Em branco, a sincronização periódica dá conta sozinha.',
       },
       {
         'label': 'ID do portal',

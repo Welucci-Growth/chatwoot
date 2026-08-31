@@ -693,6 +693,7 @@ Rails.application.routes.draw do
   post 'webhooks/tiktok', to: 'webhooks/tiktok#events'
   post 'webhooks/shopify', to: 'webhooks/shopify#events'
   post 'webhooks/pipedrive/:hook_id', to: 'webhooks/pipedrive#process_payload'
+  post 'webhooks/hubspot/:hook_id', to: 'webhooks/hubspot#process_payload'
 
   namespace :twitter do
     resource :callback, only: [:show]
