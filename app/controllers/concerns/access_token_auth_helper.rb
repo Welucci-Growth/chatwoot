@@ -5,7 +5,9 @@ module AccessTokenAuthHelper
     # message as if it were the first, since the conversation payload carries only the last one.
     'api/v1/accounts/conversations/messages' => %w[index create],
     'api/v1/accounts/conversations/assignments' => ['create'],
-    'api/v1/accounts/conversations/labels' => %w[index create]
+    'api/v1/accounts/conversations/labels' => %w[index create],
+    # LUCI fetches her own prompt and knowledge base on every message.
+    'api/v1/accounts/luci_settings' => ['show']
   }.freeze
 
   def ensure_access_token

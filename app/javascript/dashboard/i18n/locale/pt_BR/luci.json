@@ -1,0 +1,28 @@
+{
+  "LUCI": {
+    "TITLE": "LUCI",
+    "SUBTITLE": "Sua assistente de atendimento. Tudo aqui vale a partir da próxima mensagem, sem reiniciar nada.",
+    "LOADING": "Carregando…",
+    "SAVED": "LUCI atualizada",
+    "SAVE": "Salvar",
+    "SAVE_ERROR": "Não foi possível salvar. Tente de novo.",
+    "ENABLED": "LUCI ligada",
+    "ACTIVE_ON": "Atendendo em: {inboxes}",
+    "NO_INBOX": "nenhuma caixa ainda — vincule em Configurações, Robôs",
+    "LABEL_RULE": "Só em conversas com a etiqueta \\u201c{label}\\u201d.",
+    "MODEL": "Modelo",
+    "PROMPT": "Instruções",
+    "PROMPT_PLACEHOLDER": "Quem é a LUCI, como ela escreve, o que nunca pode dizer, e quando chamar um humano.",
+    "PROMPT_HINT": "A personalidade e as regras dela. Seja específico sobre quando ela deve passar a conversa adiante.",
+    "KNOWLEDGE": "Base de conhecimento",
+    "KNOWLEDGE_PLACEHOLDER": "Serviços, como funciona o processo, perguntas frequentes, o que ela não pode prometer.",
+    "KNOWLEDGE_HINT": "O que ela sabe sobre a empresa. Quanto maior, mais barata fica cada mensagem — esta parte fica em cache.",
+    "LABEL": "Etiqueta que ativa",
+    "LABEL_HINT": "Coloque essa etiqueta numa conversa e a LUCI entra. Tire e ela para.",
+    "MODEL_COST": {
+      "HAIKU": "O mais barato. Suficiente para atendimento do dia a dia.",
+      "SONNET": "Meio termo, cerca do dobro do Haiku.",
+      "OPUS": "O mais capaz, cerca de cinco vezes o Haiku."
+    }
+  }
+}

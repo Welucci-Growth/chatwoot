@@ -38,6 +38,7 @@ import sla from './sla.json';
 import snooze from './snooze.json';
 import tasks from './tasks.json';
 import bots from './bots.json';
+import luci from './luci.json';
 import groups from './groups.json';
 import teamsSettings from './teamsSettings.json';
 import whatsappTemplates from './whatsappTemplates.json';
@@ -88,6 +89,7 @@ export default {
   ...snooze,
   ...tasks,
   ...bots,
+  ...luci,
   ...groups,
   ...teamsSettings,
   ...whatsappTemplates,

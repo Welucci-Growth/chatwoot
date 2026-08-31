@@ -1,0 +1,28 @@
+{
+  "LUCI": {
+    "TITLE": "LUCI",
+    "SUBTITLE": "Your support assistant. Everything here takes effect on the next message — no restart needed.",
+    "LOADING": "Loading…",
+    "SAVED": "LUCI updated",
+    "SAVE": "Save",
+    "SAVE_ERROR": "Could not save. Try again.",
+    "ENABLED": "LUCI is on",
+    "ACTIVE_ON": "Answering on: {inboxes}",
+    "NO_INBOX": "no inbox yet — link her under Settings, Bots",
+    "LABEL_RULE": "Only in conversations carrying the \\u201c{label}\\u201d label.",
+    "MODEL": "Model",
+    "PROMPT": "Instructions",
+    "PROMPT_PLACEHOLDER": "Who LUCI is, how she writes, what she must never say, and when to call a human.",
+    "PROMPT_HINT": "Her personality and rules. Be specific about when she should hand a conversation over.",
+    "KNOWLEDGE": "Knowledge base",
+    "KNOWLEDGE_PLACEHOLDER": "Services, how the process works, frequently asked questions, what she must not promise.",
+    "KNOWLEDGE_HINT": "What she knows about the company. The longer this gets, the cheaper each message becomes — this part is cached.",
+    "LABEL": "Label that activates her",
+    "LABEL_HINT": "Add this label to a conversation and LUCI takes part. Remove it and she stops.",
+    "MODEL_COST": {
+      "HAIKU": "Cheapest. Good for everyday support.",
+      "SONNET": "Middle ground, about twice the cost of Haiku.",
+      "OPUS": "Most capable, about five times the cost of Haiku."
+    }
+  }
+}

@@ -7,6 +7,7 @@ import { routes as companyRoutes } from './companies/routes';
 import { routes as tasksRoutes } from './tasks/routes';
 import { routes as botsRoutes } from './bots/routes';
 import { routes as groupsRoutes } from './groups/routes';
+import { routes as luciRoutes } from './luci/routes';
 import { routes as notificationRoutes } from './notifications/routes';
 import { routes as inboxRoutes } from './inbox/routes';
 import { frontendURL } from '../../helper/URLHelper';
@@ -35,6 +36,7 @@ export default {
         ...tasksRoutes,
         ...botsRoutes,
         ...groupsRoutes,
+        ...luciRoutes,
         ...searchRoutes,
         ...notificationRoutes,
         ...helpcenterRoutes.routes,

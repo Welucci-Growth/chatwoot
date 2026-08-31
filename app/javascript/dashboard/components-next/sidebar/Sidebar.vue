@@ -414,6 +414,13 @@ const menuItems = computed(() => {
       ],
     },
     {
+      name: 'Luci',
+      label: t('LUCI.TITLE'),
+      icon: 'i-lucide-sparkles',
+      to: accountScopedRoute('luci_dashboard_index'),
+      activeOn: ['luci_dashboard_index'],
+    },
+    {
       name: 'Bots',
       label: t('BOTS.TITLE'),
       icon: 'i-lucide-bot',

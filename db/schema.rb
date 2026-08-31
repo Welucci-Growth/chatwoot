@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_28_000000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_01_000000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1140,6 +1140,18 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_28_000000) do
     t.index ["account_id"], name: "index_leaves_on_account_id"
     t.index ["approved_by_id"], name: "index_leaves_on_approved_by_id"
     t.index ["user_id"], name: "index_leaves_on_user_id"
+  end
+
+  create_table "luci_settings", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.text "system_prompt"
+    t.text "knowledge"
+    t.string "model", default: "claude-haiku-4-5", null: false
+    t.string "required_label", default: "luci", null: false
+    t.boolean "enabled", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_luci_settings_on_account_id", unique: true
   end
 
   create_table "macros", force: :cascade do |t|

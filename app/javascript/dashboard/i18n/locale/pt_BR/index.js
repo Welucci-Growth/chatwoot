@@ -1,6 +1,7 @@
 import advancedFilters from './advancedFilters.json';
 import agentBots from './agentBots.json';
 import bots from './bots.json';
+import luci from './luci.json';
 import groups from './groups.json';
 import agentMgmt from './agentMgmt.json';
 import attributesMgmt from './attributesMgmt.json';
@@ -50,6 +51,7 @@ export default {
   ...advancedFilters,
   ...agentBots,
   ...bots,
+  ...luci,
   ...groups,
   ...agentMgmt,
   ...attributesMgmt,
