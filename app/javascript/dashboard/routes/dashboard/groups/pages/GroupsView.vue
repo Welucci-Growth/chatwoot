@@ -24,8 +24,8 @@ const store = useStore();
 const groups = ref([]);
 const isLoading = ref(false);
 const hasError = ref(false);
-const loadedCount = ref(0);
-const totalInstances = ref(0);
+const lastSyncedAt = ref(null);
+const isRefreshing = ref(false);
 const search = ref('');
 const instanceFilter = ref('');
 
@@ -89,59 +89,16 @@ const heading = computed(() => {
 
 // Each instance is fetched on its own so the table fills in progressively and one slow
 // number never blocks the rest.
-const wait = ms =>
-  new Promise(resolve => {
-    setTimeout(resolve, ms);
-  });
-
-// The server answers immediately with whatever is cached and schedules a background refresh,
-// so an empty first answer means "come back shortly", not "no groups".
-const failedInstances = ref([]);
-
-const loadInstance = async (name, refresh) => {
-  let attempts = 0;
-  let pending = true;
-  while (pending && attempts < 20) {
-    attempts += 1;
-    try {
-      // eslint-disable-next-line no-await-in-loop
-      const { data } = await EvolutionGroupsAPI.getGroupsForInstance(
-        name,
-        refresh && attempts === 1
-      );
-      pending = data.pending;
-      if (!pending) {
-        groups.value = [...groups.value, ...(data.groups || [])];
-      } else {
-        // eslint-disable-next-line no-await-in-loop
-        await wait(5000);
-      }
-    } catch (error) {
-      // One unreachable number must not cost us the other six.
-      failedInstances.value = [...failedInstances.value, name];
-      pending = false;
-    }
-  }
-  loadedCount.value += 1;
-};
-
-const loadGroups = async (refresh = false) => {
+// Groups are stored, so opening the page is one fast request. Refreshing happens in the
+// background and the list is repopulated when it finishes.
+const loadGroups = async () => {
   isLoading.value = true;
   hasError.value = false;
-  groups.value = [];
-  loadedCount.value = 0;
-  failedInstances.value = [];
   try {
-    const { data } = await EvolutionGroupsAPI.getInstances();
-    instanceNames.value = (data.instances || []).map(i => i.name);
-    totalInstances.value = instanceNames.value.length;
-
-    // Sequential on purpose: hitting every instance at once would pile requests onto the
-    // Evolution server, which already needs up to 40 seconds per call.
-    await instanceNames.value.reduce(
-      (chain, name) => chain.then(() => loadInstance(name, refresh)),
-      Promise.resolve()
-    );
+    const { data } = await EvolutionGroupsAPI.getGroups();
+    groups.value = data.groups || [];
+    instanceNames.value = [...new Set(groups.value.map(g => g.instance))];
+    lastSyncedAt.value = data.last_synced_at;
   } catch (error) {
     hasError.value = true;
   } finally {
@@ -149,10 +106,21 @@ const loadGroups = async (refresh = false) => {
   }
 };
 
+const requestRefresh = async () => {
+  isRefreshing.value = true;
+  await EvolutionGroupsAPI.refresh();
+  useAlert(t('GROUPS.REFRESH_STARTED'));
+  // The sync walks every number, so give it room before pulling the new directory.
+  setTimeout(() => {
+    loadGroups();
+    isRefreshing.value = false;
+  }, 120000);
+};
+
 const activeConversationId = ref(null);
 
 // Groups that have already spoken have a real Chatwoot conversation, so the thread is the
-// standard conversation pane rather than a second, parallel chat implementation.
+// standard conversation pane rather than a second chat implementation.
 const openConversation = async group => {
   activeConversationId.value = null;
   if (!group.conversation_id) return;
@@ -290,9 +258,9 @@ onUnmounted(() => {
           faded
           slate
           icon="i-lucide-refresh-cw"
-          :is-loading="isLoading"
+          :is-loading="isRefreshing"
           :label="$t('GROUPS.REFRESH')"
-          @click="loadGroups(true)"
+          @click="requestRefresh"
         />
       </div>
 
@@ -315,23 +283,10 @@ onUnmounted(() => {
       </div>
 
       <p v-if="isLoading" class="text-sm text-n-slate-11">
-        {{
-          $t('GROUPS.LOADING_PROGRESS', {
-            done: loadedCount,
-            total: totalInstances,
-          })
-        }}
+        {{ $t('GROUPS.LOADING') }}
       </p>
       <p v-if="hasError" class="mb-3 text-sm text-n-ruby-11">
         {{ $t('GROUPS.ERROR') }}
-      </p>
-      <p
-        v-else-if="failedInstances.length"
-        class="mb-3 text-sm text-n-amber-11"
-      >
-        {{
-          $t('GROUPS.PARTIAL_ERROR', { numbers: failedInstances.join(', ') })
-        }}
       </p>
       <p v-else-if="!filtered.length" class="text-sm text-n-slate-11">
         {{ $t('GROUPS.EMPTY') }}

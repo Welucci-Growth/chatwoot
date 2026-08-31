@@ -7,7 +7,6 @@
     "ALL_NUMBERS": "Todos os números",
     "COUNT": "{count} grupos",
     "LOADING": "Carregando…",
-    "LOADING_PROGRESS": "Carregando número {done} de {total}. Cada um leva alguns segundos.",
     "EMPTY": "Nenhum grupo encontrado.",
     "ERROR": "Não foi possível falar com o servidor Evolution. Verifique se ele está no ar e se a caixa espelho está configurada.",
     "TABLE": {
@@ -63,6 +62,6 @@
       "IDLE": "Sem atividade",
       "WAITING_FOR": "Aguardando há {duration}"
     },
-    "PARTIAL_ERROR": "Estes números não responderam e ficaram de fora da lista: {numbers}. Use Atualizar para tentar de novo."
+    "REFRESH_STARTED": "Atualizando em segundo plano. Isso percorre todos os números e leva alguns minutos."
   }
 }

@@ -2,8 +2,11 @@
 # mirror inbox. Only non-messaging operations are exposed: nothing here sends a message or
 # adds a participant, which are the actions that put a number at risk.
 class Whatsapp::Evolution::GroupService
-  CACHE_TTL = 30.minutes
   READ_TIMEOUT = 90
+
+  def channel_for?(account)
+    Channel::Whatsapp.exists?(provider: 'evolution', account_id: account.id)
+  end
 
   def connected_instances
     request(:get, '/instance/fetchInstances')
@@ -11,35 +14,35 @@ class Whatsapp::Evolution::GroupService
       .map { |i| { name: i['name'], profile_name: i['profileName'] } }
   end
 
-  # A single instance takes up to 40 seconds and the whole fleet takes minutes, far beyond any
-  # HTTP timeout. The dashboard therefore reads the cache and a background job fills it.
-  #
-  # Redis rather than Rails.cache on purpose: this installation's Rails.cache is a FileStore,
-  # local to each container, so a cache written by the job in Sidekiq would be invisible to
-  # the web process that has to serve it.
-  def cached_groups(instance)
-    raw = ::Redis::Alfred.get(cache_key(instance))
-    return nil if raw.blank?
-
-    with_conversations(JSON.parse(raw, symbolize_names: true))
+  # Groups live in the database rather than a cache: listing them takes minutes, so the
+  # dashboard reads what was last synced and a background job keeps it current.
+  def stored_groups(instance: nil)
+    scope = WhatsappGroup.where(account: channel.account)
+    scope = scope.for_instance(instance) if instance.present?
+    with_conversations(scope.order(:subject).map { |g| serialize(g) })
   end
 
-  # Evolution knows every group the number belongs to; Chatwoot only has a thread for the ones
-  # that have spoken since the mirror was connected. Joining the two is what turns a directory
-  # into something you can monitor.
-  def with_conversations(groups)
-    threads = conversation_index(groups.pluck(:jid))
-    groups.map { |g| g.merge(threads.fetch(g[:jid], {})) }
+  def last_synced_at
+    WhatsappGroup.where(account: channel.account).maximum(:synced_at)
   end
 
+  # Upserts what Evolution reports and drops groups the number has left, so the directory
+  # matches reality instead of only ever growing.
   def sync_groups(instance)
-    groups = fetch_groups(instance)
-    ::Redis::Alfred.setex(cache_key(instance), groups.to_json, CACHE_TTL)
-    groups
+    seen = fetch_groups(instance).map { |g| upsert_group(instance, g) }
+    WhatsappGroup.where(account: channel.account).for_instance(instance).where.not(jid: seen).delete_all
+    seen.count
   end
 
-  def expire(instance)
-    ::Redis::Alfred.delete(cache_key(instance))
+  def upsert_group(instance, attrs)
+    record = WhatsappGroup.find_or_initialize_by(account: channel.account, jid: attrs[:jid])
+    record.assign_attributes(
+      instance: instance, subject: attrs[:subject], description: attrs[:description],
+      size: attrs[:size], owner: attrs[:owner], announce_only: attrs[:announce_only].present?,
+      locked: attrs[:locked].present?, synced_at: Time.current
+    )
+    record.save!
+    record.jid
   end
 
   # The numbers running the instances are the staff phones, so the roster seeds itself and
@@ -53,22 +56,6 @@ class Whatsapp::Evolution::GroupService
       member.name = i['profileName'].presence || i['name']
       member.source = 'instance'
       member.save!
-    end
-  end
-
-  def fetch_groups(instance)
-    request(:get, "/group/fetchAllGroups/#{instance}", getParticipants: false).map do |g|
-      {
-        instance: instance,
-        jid: g['id'],
-        subject: g['subject'],
-        description: g['desc'],
-        size: g['size'],
-        owner: g['owner'],
-        announce_only: g['announce'],
-        locked: g['restrict'],
-        created_at: g['creation']
-      }
     end
   end
 
@@ -89,12 +76,12 @@ class Whatsapp::Evolution::GroupService
 
   def update_subject(instance, jid, subject)
     request(:post, "/group/updateGroupSubject/#{instance}", { groupJid: jid }, { subject: subject })
-    expire(instance)
+    stored_group(jid)&.update!(subject: subject)
   end
 
   def update_description(instance, jid, description)
     request(:post, "/group/updateGroupDescription/#{instance}", { groupJid: jid }, { description: description })
-    expire(instance)
+    stored_group(jid)&.update!(description: description)
   end
 
   # Only promotion and demotion are allowed. Adding or removing members is deliberately
@@ -107,6 +94,27 @@ class Whatsapp::Evolution::GroupService
   end
 
   private
+
+  def stored_group(jid)
+    WhatsappGroup.find_by(account: channel.account, jid: jid)
+  end
+
+  # Evolution knows every group the number belongs to; Chatwoot only has a thread for the ones
+  # that have spoken since the mirror was connected. Joining the two is what turns a directory
+  # into something you can monitor.
+  def with_conversations(groups)
+    threads = conversation_index(groups.pluck(:jid))
+    groups.map { |g| g.merge(threads.fetch(g[:jid], {})) }
+  end
+
+  def fetch_groups(instance)
+    request(:get, "/group/fetchAllGroups/#{instance}", getParticipants: false).map do |g|
+      {
+        jid: g['id'], subject: g['subject'], description: g['desc'], size: g['size'],
+        owner: g['owner'], announce_only: g['announce'], locked: g['restrict']
+      }
+    end
+  end
 
   def conversation_index(jids)
     inbox = channel.inbox
@@ -163,8 +171,12 @@ class Whatsapp::Evolution::GroupService
     conversation.agent_last_seen_at || Time.zone.at(0)
   end
 
-  def cache_key(instance)
-    "evolution_groups/#{channel.id}/#{instance}"
+  def serialize(group)
+    {
+      instance: group.instance, jid: group.jid, subject: group.subject,
+      description: group.description, size: group.size, owner: group.owner,
+      announce_only: group.announce_only, locked: group.locked
+    }
   end
 
   def channel

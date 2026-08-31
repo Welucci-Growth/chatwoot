@@ -151,7 +151,7 @@ Rails.application.routes.draw do
           end
           resources :evolution_groups, only: [:index] do
             collection do
-              get :by_instance
+              post :refresh
               get :details
               post :update_group
               post :revoke_invite

@@ -2,23 +2,18 @@ class Api::V1::Accounts::EvolutionGroupsController < Api::V1::Accounts::BaseCont
   before_action :ensure_administrator
   before_action :set_service
 
-  # The dashboard loads one instance at a time; a single aggregate call would outlive the
-  # request timeout, since Evolution takes tens of seconds per instance.
+  # Reads what was last synced, so opening the dashboard is instant no matter how many
+  # groups exist. Refreshing is a background job, never something the user waits on.
   def index
-    render json: { instances: @service.connected_instances }
+    render json: {
+      groups: @service.stored_groups,
+      last_synced_at: @service.last_synced_at
+    }
   end
 
-  # Never blocks: returns whatever is cached and schedules a refresh when there is nothing yet.
-  def by_instance
-    @service.expire(instance) if params[:refresh].present?
-    groups = @service.cached_groups(instance)
-
-    if groups.nil?
-      Whatsapp::Evolution::GroupSyncJob.perform_later(instance)
-      render json: { groups: [], pending: true }
-    else
-      render json: { groups: groups, pending: false }
-    end
+  def refresh
+    Whatsapp::Evolution::GroupRefreshJob.perform_later(Current.account.id)
+    head :accepted
   end
 
   def details
