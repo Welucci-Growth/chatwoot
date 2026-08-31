@@ -25,7 +25,13 @@ const hasFailed = ref(false);
 const panel = ref({});
 const previews = ref({});
 
-const crm = computed(() => props.task?.customAttributes?.pipedrive || {});
+// Cards can come from either CRM. HubSpot cards carry everything they need already, so the
+// dialog reads them straight from the card instead of calling the CRM when it opens.
+const source = computed(() =>
+  props.task?.customAttributes?.hubspot ? 'hubspot' : 'pipedrive'
+);
+const isHubspot = computed(() => source.value === 'hubspot');
+const crm = computed(() => props.task?.customAttributes?.[source.value] || {});
 const amounts = computed(() => crm.value.amounts || {});
 const fields = computed(() => crm.value.fields || []);
 const products = computed(() => panel.value.products || []);
@@ -111,6 +117,9 @@ const downloadFile = async file => {
 };
 
 const loadPanel = async () => {
+  // HubSpot cards are self contained, and the account asked for no calls to their CRM.
+  if (isHubspot.value) return;
+
   isLoading.value = true;
   hasFailed.value = false;
   try {
@@ -131,7 +140,7 @@ const releasePreviews = () => {
 
 const open = () => {
   activeTab.value = 0;
-  showAllFields.value = false;
+  showAllFields.value = isHubspot.value;
   panel.value = {};
   releasePreviews();
   dialogRef.value.open();
@@ -205,8 +214,7 @@ const productsTotal = computed(() =>
   products.value.reduce((total, product) => total + Number(product.sum || 0), 0)
 );
 
-// Abas vazias nao aparecem: o objetivo e justamente nao repetir o Pipedrive poluido.
-const tabs = computed(() =>
+const legacyTabs = computed(() =>
   [
     { key: 'overview', label: t('TASKS.DETAIL.TABS.OVERVIEW') },
     {
@@ -236,6 +244,65 @@ const tabs = computed(() =>
     },
   ].filter(tab => tab.key === 'overview' || tab.count > 0)
 );
+
+// Abas vazias nao aparecem: o objetivo e justamente nao repetir o Pipedrive poluido.
+const tabs = computed(() =>
+  isHubspot.value
+    ? [{ key: 'overview', label: t('TASKS.DETAIL.TABS.OVERVIEW') }]
+    : legacyTabs.value
+);
+
+// Everything below comes from the card itself. Rows with no value are dropped, so the panel
+// shows what this deal actually has rather than a grid of blanks.
+const summaryRows = computed(() => {
+  if (!isHubspot.value) return [];
+  const c = crm.value;
+  return [
+    {
+      key: 'stage',
+      label: t('TASKS.DETAIL.HUBSPOT.STAGE'),
+      value: props.task?.taskColumn?.name,
+    },
+    {
+      key: 'amount',
+      label: t('TASKS.DETAIL.HUBSPOT.AMOUNT'),
+      value: amounts.value.value ? formatMoney(amounts.value.value) : null,
+    },
+    { key: 'type', label: t('TASKS.DETAIL.HUBSPOT.TYPE'), value: c.deal_type },
+    {
+      key: 'owner',
+      label: t('TASKS.DETAIL.HUBSPOT.OWNER'),
+      value: props.task?.assignee?.name,
+    },
+    {
+      key: 'close',
+      label: t('TASKS.DETAIL.HUBSPOT.CLOSE_DATE'),
+      value: formatDate(c.close_date) || null,
+    },
+    {
+      key: 'created',
+      label: t('TASKS.DETAIL.HUBSPOT.CREATED'),
+      value: formatDate(c.added_at) || null,
+    },
+    {
+      key: 'updated',
+      label: t('TASKS.DETAIL.HUBSPOT.UPDATED'),
+      value: formatDate(c.updated_at) || null,
+    },
+    {
+      key: 'lost',
+      label: t('TASKS.DETAIL.HUBSPOT.LOST_REASON'),
+      value: c.lost_reason,
+    },
+    {
+      key: 'deal_id',
+      label: t('TASKS.DETAIL.HUBSPOT.DEAL_ID'),
+      value: c.deal_id,
+    },
+  ].filter(
+    row => row.value !== null && row.value !== undefined && row.value !== ''
+  );
+});
 
 const currentTab = computed(
   () => tabs.value[activeTab.value]?.key || 'overview'
@@ -387,6 +454,26 @@ const onTabChange = tab => {
               <span class="i-lucide-phone size-3.5" />
               {{ phone }}
             </a>
+          </div>
+
+          <div v-if="summaryRows.length" class="flex flex-col gap-3">
+            <h4
+              class="text-xs font-medium tracking-wide uppercase text-n-slate-10"
+            >
+              {{ t('TASKS.DETAIL.HUBSPOT.SUMMARY') }}
+            </h4>
+            <dl class="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+              <div
+                v-for="row in summaryRows"
+                :key="row.key"
+                class="flex flex-col gap-0.5 py-1.5 border-b border-n-weak"
+              >
+                <dt class="text-xs text-n-slate-10">{{ row.label }}</dt>
+                <dd class="text-sm break-words text-n-slate-12">
+                  {{ row.value }}
+                </dd>
+              </div>
+            </dl>
           </div>
 
           <div v-if="fields.length" class="flex flex-col gap-3">

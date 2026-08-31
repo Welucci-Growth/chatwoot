@@ -86,7 +86,19 @@
       "PENDING": "Pendentes",
       "DONE": "Concluídas",
       "DAYS": "{count}d",
-      "CHANGED": "{from} → {to}"
+      "CHANGED": "{from} → {to}",
+      "HUBSPOT": {
+        "SUMMARY": "Negócio",
+        "STAGE": "Etapa",
+        "AMOUNT": "Valor",
+        "TYPE": "Tipo",
+        "OWNER": "Responsável",
+        "CLOSE_DATE": "Previsão de fechamento",
+        "CREATED": "Criado em",
+        "UPDATED": "Última alteração",
+        "LOST_REASON": "Motivo da perda",
+        "DEAL_ID": "Id no HubSpot"
+      }
     }
   }
 }
