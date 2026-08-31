@@ -1,7 +1,9 @@
 module AccessTokenAuthHelper
   BOT_ACCESSIBLE_ENDPOINTS = {
     'api/v1/accounts/conversations' => %w[show toggle_status toggle_typing_status toggle_priority create update custom_attributes],
-    'api/v1/accounts/conversations/messages' => ['create'],
+    # Bots that answer in a thread need to read it: without index they would reply to every
+    # message as if it were the first, since the conversation payload carries only the last one.
+    'api/v1/accounts/conversations/messages' => %w[index create],
     'api/v1/accounts/conversations/assignments' => ['create'],
     'api/v1/accounts/conversations/labels' => %w[index create]
   }.freeze
