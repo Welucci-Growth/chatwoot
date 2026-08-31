@@ -18,11 +18,13 @@ class Integrations::Hook < ApplicationRecord
   include Reauthorizable
 
   PIPEDRIVE_CONFIG_KEYS = %w[api_token company_domain pipeline_ids sync_activities].freeze
+  HUBSPOT_CONFIG_KEYS = %w[access_token portal_id pipeline_ids].freeze
+  CRM_CONFIG_KEYS = { 'pipedrive' => PIPEDRIVE_CONFIG_KEYS, 'hubspot' => HUBSPOT_CONFIG_KEYS }.freeze
 
   attr_readonly :app_id, :account_id, :inbox_id, :hook_type
   before_validation :ensure_hook_type
   after_create :trigger_setup_if_crm
-  after_update :trigger_setup_if_crm, if: :pipedrive_config_changed?
+  after_update :trigger_setup_if_crm, if: :crm_config_changed?
   after_destroy :remove_pipedrive_webhooks
 
   # TODO: Remove guard once encryption keys become mandatory (target 3-4 releases out).
@@ -179,17 +181,18 @@ class Integrations::Hook < ApplicationRecord
   end
 
   def crm_integration?
-    %w[leadsquared pipedrive].include?(app_id)
+    %w[leadsquared pipedrive hubspot].include?(app_id)
   end
 
   # Re-provisions boards and webhook subscriptions when the integration is reconfigured.
   # Only the operator facing keys count, so the setup service writing its own bookkeeping
   # back into settings does not loop.
-  def pipedrive_config_changed?
-    return false unless app_id == 'pipedrive'
+  def crm_config_changed?
+    keys = CRM_CONFIG_KEYS[app_id]
+    return false if keys.blank?
 
     before, after = saved_change_to_settings
-    before.to_h.values_at(*PIPEDRIVE_CONFIG_KEYS) != after.to_h.values_at(*PIPEDRIVE_CONFIG_KEYS)
+    before.to_h.values_at(*keys) != after.to_h.values_at(*keys)
   end
 
   def remove_pipedrive_webhooks

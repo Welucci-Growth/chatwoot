@@ -328,6 +328,54 @@ leadsquared:
       'conversation_activity_score',
       'transcript_activity_score',
     ]
+hubspot:
+  id: hubspot
+  logo: hubspot.png
+  i18n_key: hubspot
+  action: /hubspot
+  hook_type: account
+  allow_multiple_hooks: false
+  settings_json_schema:
+    {
+      'type': 'object',
+      'properties':
+        {
+          'access_token': { 'type': 'string' },
+          'portal_id': { 'type': 'string' },
+          'pipeline_ids': { 'type': 'string' },
+          'board_ids': { 'type': 'object' },
+          'stage_columns': { 'type': 'object' },
+          'owner_map': { 'type': 'object' },
+          'deal_fields': { 'type': 'array' },
+          'last_synced_at': { 'type': 'string' },
+        },
+      'required': ['access_token'],
+      'additionalProperties': false,
+    }
+  settings_form_schema:
+    [
+      {
+        'label': 'Token do app privado',
+        'type': 'text',
+        'name': 'access_token',
+        'validation': 'required',
+        'validationName': 'Token',
+        'help': 'HubSpot → Configurações → Integrações → Apps privados → token de acesso. Precisa dos escopos de leitura de negócios, contatos e propriedades.',
+      },
+      {
+        'label': 'ID do portal',
+        'type': 'text',
+        'name': 'portal_id',
+        'help': 'O número que aparece na URL do HubSpot (app.hubspot.com/contacts/12345678). Usado só para montar o link dos cards.',
+      },
+      {
+        'label': 'Funis a espelhar',
+        'type': 'text',
+        'name': 'pipeline_ids',
+        'help': 'IDs separados por vírgula. Cada funil vira um painel em Tarefas, com as etapas como colunas. Em branco, nada é espelhado.',
+      },
+    ]
+  visible_properties: ['portal_id', 'pipeline_ids']
 pipedrive:
   id: pipedrive
   logo: pipedrive.png

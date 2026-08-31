@@ -25,9 +25,9 @@ class Crm::SetupJob < ApplicationJob
       Crm::Leadsquared::SetupService.new(hook)
     when 'pipedrive'
       Crm::Pipedrive::SetupService.new(hook)
+    when 'hubspot'
+      Crm::Hubspot::SetupService.new(hook)
     # Add cases for future CRMs here
-    # when 'hubspot'
-    #   Crm::Hubspot::SetupService.new(hook)
     # when 'zoho'
     #   Crm::Zoho::SetupService.new(hook)
     else
