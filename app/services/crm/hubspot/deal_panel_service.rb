@@ -9,7 +9,7 @@ class Crm::Hubspot::DealPanelService
   end
 
   def perform
-    { stages: stages, person: person }
+    { stages: stages, contact: contact_summary, person: person }
   end
 
   private
@@ -24,16 +24,46 @@ class Crm::Hubspot::DealPanelService
     end
   end
 
-  # The contact linked at mirror time, with the details Chatwoot itself holds.
+  # The contact behind the card, with the details Chatwoot itself holds.
   def person
-    contact = @task.contact
-    return nil if contact.blank?
+    return nil if linked_contact.blank?
 
     {
-      name: contact.name,
-      emails: [contact.email.presence].compact,
-      phones: [contact.phone_number.presence].compact,
+      name: linked_contact.name,
+      emails: [linked_contact.email.presence].compact,
+      phones: [linked_contact.phone_number.presence].compact,
       organization: nil
     }
+  end
+
+  def contact_summary
+    linked_contact && { id: linked_contact.id, name: linked_contact.name }
+  end
+
+  def linked_contact
+    return @linked_contact if defined?(@linked_contact)
+
+    @linked_contact = @task.contact || Crm::ContactLinker.link(@task, origin_phones)
+  end
+
+  # These deals were migrated from Pipedrive and carry the origin id, which is the only route
+  # to the client's phone number that does not call HubSpot.
+  def origin_phones
+    return [] if origin_person_id.blank? || pipedrive_token.blank?
+
+    person = Crm::Pipedrive::Api::Client.new(pipedrive_token).person(origin_person_id)
+    Array(person['phone']).filter_map { |entry| entry['value'].presence }
+  end
+
+  def origin_person_id
+    deal_id = Array(@crm['fields']).find { |field| field['name'] == 'Pipedrive ID' }&.dig('value')
+    return nil if deal_id.blank?
+
+    origin = @task.account.tasks.where("custom_attributes -> 'pipedrive' ->> 'deal_id' = ?", deal_id.to_s).first
+    origin&.custom_attributes&.dig('pipedrive', 'person_id')
+  end
+
+  def pipedrive_token
+    @task.account.hooks.find_by(app_id: 'pipedrive')&.settings&.dig('api_token')
   end
 end

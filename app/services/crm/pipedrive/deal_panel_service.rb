@@ -40,7 +40,8 @@ class Crm::Pipedrive::DealPanelService
       notes: notes(data[:notes]),
       activities: activities(data[:activities]),
       changelog: changelog(data[:changelog]),
-      person: person(data[:person])
+      person: person(data[:person]),
+      contact: contact(data[:person])
     }
   end
 
@@ -204,6 +205,14 @@ class Crm::Pipedrive::DealPanelService
       phones: Array(data['phone']).filter_map { |entry| entry['value'].presence },
       organization: data.dig('org_id', 'name')
     }
+  end
+
+  # The person is already on hand here, so a card whose client only wrote to us after the last
+  # deal change gets its contact resolved without any extra request.
+  def contact(data)
+    phones = Array(data&.dig('phone')).filter_map { |entry| entry['value'].presence }
+    record = Crm::ContactLinker.link(@task, phones)
+    record && { id: record.id, name: record.name }
   end
 
   def to_text(value)

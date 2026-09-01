@@ -278,7 +278,11 @@ const crmTabs = computed(() =>
 // shows what this deal actually has rather than a grid of blanks.
 // The mirror links the card to a Chatwoot contact when it can match by email or phone.
 // Where that worked, the agent can jump straight to the person and their conversations.
-const linkedContact = computed(() => props.task?.contact || null);
+// The mirror links the card while it syncs; the panel resolves the link for cards whose
+// client only started talking to us later, so it can arrive with the panel rather than the card.
+const linkedContact = computed(
+  () => props.task?.contact || panel.value.contact || null
+);
 
 const contactRoute = computed(() =>
   linkedContact.value
