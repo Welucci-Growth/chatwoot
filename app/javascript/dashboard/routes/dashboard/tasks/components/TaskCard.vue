@@ -2,9 +2,11 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
+import { waitingInfo } from '../helpers/waiting';
 
 const props = defineProps({
   task: { type: Object, required: true },
+  now: { type: Number, default: () => Date.now() },
 });
 
 defineEmits(['click', 'delete']);
@@ -14,6 +16,18 @@ const { t } = useI18n();
 const dueLabel = computed(() => {
   if (!props.task.dueOn) return '';
   return new Date(props.task.dueOn * 1000).toLocaleDateString();
+});
+
+const waiting = computed(() => waitingInfo(props.task.waitingSince, props.now));
+
+const waitingTone = computed(() => {
+  if (!waiting.value) return { border: 'border-n-weak', chip: '' };
+  return waiting.value.isLate
+    ? {
+        border: 'border-n-ruby-8 ring-1 ring-n-ruby-8',
+        chip: 'bg-n-ruby-3 text-n-ruby-11',
+      }
+    : { border: 'border-n-amber-8', chip: 'bg-n-amber-3 text-n-amber-11' };
 });
 
 // The shortcut out to the CRM that mirrored this card. The chip carries the CRM's own
@@ -29,9 +43,19 @@ const crm = computed(() => {
 
 <template>
   <div
-    class="relative flex flex-col gap-2 p-3 transition-all border shadow-sm cursor-pointer group bg-n-solid-2 border-n-weak rounded-xl hover:shadow-md hover:border-n-strong"
+    class="relative flex flex-col gap-2 p-3 transition-all border shadow-sm cursor-pointer group bg-n-solid-2 rounded-xl hover:shadow-md hover:border-n-strong"
+    :class="waitingTone.border"
     @click="$emit('click')"
   >
+    <div
+      v-if="waiting"
+      class="inline-flex items-center self-start gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
+      :class="waitingTone.chip"
+      :title="t('TASKS.WAITING_REPLY')"
+    >
+      <span class="i-lucide-reply size-3" />
+      {{ waiting.label }}
+    </div>
     <div class="flex items-start justify-between gap-2">
       <p class="text-sm font-medium leading-snug text-n-slate-12 line-clamp-3">
         {{ task.title }}

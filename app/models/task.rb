@@ -58,6 +58,15 @@ class Task < ApplicationRecord
     due_on.present? && due_on < Time.current
   end
 
+  # Set in bulk by the board, which resolves every card at once; resolved on demand elsewhere.
+  attr_writer :waiting_since
+
+  def waiting_since
+    return @waiting_since if defined?(@waiting_since)
+
+    @waiting_since = Tasks::WaitingReplyFinder.new(account, [contact_id]).perform[contact_id]
+  end
+
   private
 
   def ensure_account_id

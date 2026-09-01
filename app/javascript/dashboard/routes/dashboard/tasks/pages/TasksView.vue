@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { OnClickOutside } from '@vueuse/components';
 import draggable from 'vuedraggable';
@@ -13,6 +13,16 @@ import TaskDetailDialog from '../components/TaskDetailDialog.vue';
 
 const { t } = useI18n();
 const tasksStore = useTasksStore();
+
+// One clock for the board: the waiting badges age on their own, without a timer per card.
+const now = ref(Date.now());
+let clock = null;
+onMounted(() => {
+  clock = setInterval(() => {
+    now.value = Date.now();
+  }, 60000);
+});
+onUnmounted(() => clearInterval(clock));
 
 const selectedBoardId = ref(null);
 const taskDialogRef = ref(null);
@@ -355,6 +365,7 @@ const onDragChange = async (event, column) => {
               <template #item="{ element }">
                 <TaskCard
                   :task="element"
+                  :now="now"
                   @click="openTask(element, column)"
                   @delete="removeTask(element)"
                 />

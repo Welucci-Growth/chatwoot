@@ -7,6 +7,7 @@ json.task_column_id resource.task_column_id
 json.due_on resource.due_on&.to_i
 json.overdue resource.overdue?
 json.conversation_id resource.conversation_id
+json.waiting_since resource.waiting_since&.to_i
 json.labels resource.label_list
 json.custom_attributes resource.custom_attributes
 if resource.assignee.present?

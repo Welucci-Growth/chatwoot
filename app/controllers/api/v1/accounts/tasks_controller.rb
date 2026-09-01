@@ -8,6 +8,7 @@ class Api::V1::Accounts::TasksController < Api::V1::Accounts::BaseController
                     .includes(:assignee, :contact)
                     .order(position: :asc, created_at: :asc)
     @tasks = @tasks.where(task_board_id: params[:task_board_id]) if params[:task_board_id].present?
+    preload_waiting_replies
   end
 
   def show; end
@@ -47,6 +48,13 @@ class Api::V1::Accounts::TasksController < Api::V1::Accounts::BaseController
   end
 
   private
+
+  # Resolved for the whole board at once: asking card by card would be a query per card.
+  def preload_waiting_replies
+    @tasks = @tasks.to_a
+    waiting = Tasks::WaitingReplyFinder.new(Current.account, @tasks.map(&:contact_id)).perform
+    @tasks.each { |task| task.waiting_since = waiting[task.contact_id] }
+  end
 
   def fetch_task
     @task = Current.account.tasks.where(task_board_id: accessible_board_ids).find(params[:id])

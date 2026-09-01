@@ -11,6 +11,9 @@ import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import ConversationBox from 'dashboard/components/widgets/conversation/ConversationBox.vue';
 import ContactAPI from 'dashboard/api/contacts';
+import { useAlert } from 'dashboard/composables';
+import { copyTextToClipboard } from 'shared/helpers/clipboard';
+import { waitingInfo } from '../helpers/waiting';
 
 const props = defineProps({
   task: { type: Object, default: null },
@@ -174,6 +177,59 @@ const hasHiddenFields = computed(
   () => fields.value.length > FIELD_PREVIEW_COUNT
 );
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const MONEY_FIELD = /valor|venda|ticket|receita|pre[cç]o/i;
+const LINK = /^https?:\/\//;
+
+const relativeFormatter = new Intl.RelativeTimeFormat(undefined, {
+  numeric: 'auto',
+});
+
+const relativeLabel = date => {
+  const days = Math.round((date.getTime() - Date.now()) / 86400000);
+  if (Math.abs(days) < 31) return relativeFormatter.format(days, 'day');
+  const months = Math.round(days / 30);
+  if (Math.abs(months) < 12) return relativeFormatter.format(months, 'month');
+  return relativeFormatter.format(Math.round(days / 365), 'year');
+};
+
+// The CRM hands every field over as a plain string. Giving dates, money and links their own
+// shape is what turns a wall of text into something readable at a glance — and a date says
+// how far away it is, which is the thing an agent actually wants to know.
+const decorate = field => {
+  const value = String(field.value ?? '');
+
+  if (ISO_DATE.test(value)) {
+    const date = new Date(`${value}T00:00:00`);
+    return {
+      name: field.name,
+      text: date.toLocaleDateString(),
+      hint: relativeLabel(date),
+    };
+  }
+  if (LINK.test(value)) return { name: field.name, text: value, href: value };
+  if (MONEY_FIELD.test(field.name) && Number(value) > 0) {
+    return { name: field.name, text: formatMoney(Number(value)) };
+  }
+  return { name: field.name, text: value };
+};
+
+const decoratedFields = computed(() => visibleFields.value.map(decorate));
+
+// The same wait the board shows, so opening a card does not lose the urgency it flagged.
+const waiting = computed(() => waitingInfo(props.task?.waitingSince));
+
+const currentStageIndex = computed(() =>
+  stages.value.findIndex(stage => stage.current)
+);
+
+const crmName = computed(() => (isHubspot.value ? 'HubSpot' : 'Pipedrive'));
+
+const copyValue = async value => {
+  await copyTextToClipboard(value);
+  useAlert(t('TASKS.DETAIL.COPIED'));
+};
+
 // HubSpot has no single status field; the outcome shows up as the closed flag, a lost
 // reason, or simply the stage the deal sits in.
 const hubspotStatus = computed(() => {
@@ -314,6 +370,14 @@ const openConversation = async conversationId => {
   activeConversationId.value = conversationId;
 };
 
+const conversationRoute = computed(() =>
+  activeConversationId.value
+    ? accountScopedRoute('inbox_conversation', {
+        conversation_id: activeConversationId.value,
+      })
+    : null
+);
+
 // Loaded only when the tab is opened: most card views never need it.
 const loadConversations = async () => {
   if (!linkedContact.value || isLoadingConversations.value) return;
@@ -445,7 +509,32 @@ const onTabChange = tab => {
           />
         </div>
 
-        <div v-if="stats.length" class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div
+          v-if="stats.length || waiting"
+          class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+        >
+          <div
+            v-if="waiting"
+            class="flex flex-col gap-1 px-3 py-2.5 border rounded-xl"
+            :class="
+              waiting.isLate
+                ? 'border-n-ruby-8 bg-n-ruby-2'
+                : 'border-n-amber-8 bg-n-amber-2'
+            "
+          >
+            <span
+              class="text-[10px] uppercase tracking-wide"
+              :class="waiting.isLate ? 'text-n-ruby-11' : 'text-n-amber-11'"
+            >
+              {{ t('TASKS.WAITING_REPLY') }}
+            </span>
+            <span
+              class="text-sm font-semibold"
+              :class="waiting.isLate ? 'text-n-ruby-11' : 'text-n-amber-11'"
+            >
+              {{ waiting.label }}
+            </span>
+          </div>
           <div
             v-for="stat in stats"
             :key="stat.key"
@@ -462,13 +551,13 @@ const onTabChange = tab => {
       </div>
       <div v-if="stages.length" class="flex gap-1 overflow-x-auto">
         <div
-          v-for="stage in stages"
+          v-for="(stage, index) in stages"
           :key="stage.name"
           class="flex flex-col gap-1 flex-1 min-w-[76px]"
         >
           <span
             class="h-1.5 rounded-full"
-            :class="stage.current ? 'bg-n-brand' : 'bg-n-alpha-2'"
+            :class="index <= currentStageIndex ? 'bg-n-brand' : 'bg-n-alpha-2'"
           />
           <span
             class="text-[10px] truncate"
@@ -529,27 +618,50 @@ const onTabChange = tab => {
           </router-link>
 
           <div
-            v-if="person?.emails?.length || person?.phones?.length"
-            class="flex flex-wrap gap-2"
+            v-if="person"
+            class="flex flex-col gap-2.5 p-3 border bg-n-solid-2 border-n-weak rounded-xl"
           >
-            <a
-              v-for="email in person.emails"
-              :key="email"
-              :href="`mailto:${email}`"
-              class="inline-flex items-center gap-1.5 px-2 py-1 text-xs rounded-lg bg-n-alpha-2 text-n-slate-11 hover:text-n-brand"
+            <div class="flex items-center gap-2">
+              <Avatar :name="person.name || ''" :size="28" rounded-full />
+              <div class="flex flex-col min-w-0">
+                <span class="text-sm font-medium truncate text-n-slate-12">
+                  {{ person.name }}
+                </span>
+                <span
+                  v-if="person.organization"
+                  class="text-[11px] truncate text-n-slate-10"
+                >
+                  {{ person.organization }}
+                </span>
+              </div>
+            </div>
+
+            <div
+              v-if="person.emails?.length || person.phones?.length"
+              class="flex flex-wrap gap-1.5"
             >
-              <span class="i-lucide-mail size-3.5" />
-              {{ email }}
-            </a>
-            <a
-              v-for="phone in person.phones"
-              :key="phone"
-              :href="`tel:${phone}`"
-              class="inline-flex items-center gap-1.5 px-2 py-1 text-xs rounded-lg bg-n-alpha-2 text-n-slate-11 hover:text-n-brand"
-            >
-              <span class="i-lucide-phone size-3.5" />
-              {{ phone }}
-            </a>
+              <button
+                v-for="phone in person.phones"
+                :key="phone"
+                type="button"
+                class="inline-flex items-center gap-1.5 px-2 py-1 text-xs rounded-lg bg-n-alpha-2 text-n-slate-11 hover:text-n-brand"
+                :title="t('TASKS.DETAIL.COPY')"
+                @click="copyValue(phone)"
+              >
+                <span class="i-lucide-phone size-3.5" />
+                {{ phone }}
+                <span class="i-lucide-copy size-3 opacity-60" />
+              </button>
+              <a
+                v-for="email in person.emails"
+                :key="email"
+                :href="`mailto:${email}`"
+                class="inline-flex items-center gap-1.5 px-2 py-1 text-xs rounded-lg bg-n-alpha-2 text-n-slate-11 hover:text-n-brand"
+              >
+                <span class="i-lucide-mail size-3.5" />
+                {{ email }}
+              </a>
+            </div>
           </div>
 
           <div v-if="summaryRows.length" class="flex flex-col gap-3">
@@ -580,13 +692,30 @@ const onTabChange = tab => {
             </h4>
             <dl class="grid gap-x-6 gap-y-2 sm:grid-cols-2">
               <div
-                v-for="field in visibleFields"
+                v-for="field in decoratedFields"
                 :key="field.name"
-                class="flex items-start justify-between gap-3 pb-2 border-b border-n-weak"
+                class="flex items-start justify-between gap-3 py-2 border-b border-n-weak"
               >
                 <dt class="text-xs text-n-slate-10">{{ field.name }}</dt>
-                <dd class="text-xs font-medium text-right text-n-slate-12">
-                  {{ field.value }}
+                <dd class="flex flex-col items-end min-w-0 gap-0.5">
+                  <a
+                    v-if="field.href"
+                    :href="field.href"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="max-w-full text-xs font-medium truncate text-n-brand hover:underline"
+                  >
+                    {{ field.text }}
+                  </a>
+                  <span
+                    v-else
+                    class="text-xs font-medium text-right break-words text-n-slate-12"
+                  >
+                    {{ field.text }}
+                  </span>
+                  <span v-if="field.hint" class="text-[10px] text-n-slate-10">
+                    {{ field.hint }}
+                  </span>
                 </dd>
               </div>
             </dl>
@@ -633,6 +762,34 @@ const onTabChange = tab => {
           </p>
 
           <template v-else>
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-sm font-medium truncate text-n-slate-12">
+                  {{ linkedContact.name }}
+                </span>
+                <span
+                  v-if="waiting"
+                  class="px-1.5 py-0.5 rounded-md text-[11px] font-semibold shrink-0"
+                  :class="
+                    waiting.isLate
+                      ? 'bg-n-ruby-3 text-n-ruby-11'
+                      : 'bg-n-amber-3 text-n-amber-11'
+                  "
+                >
+                  {{ t('TASKS.WAITING_REPLY') }} · {{ waiting.label }}
+                </span>
+              </div>
+              <router-link
+                v-if="conversationRoute"
+                :to="conversationRoute"
+                class="inline-flex items-center gap-1 text-xs font-medium shrink-0 text-n-slate-11 hover:text-n-brand"
+                @click="close"
+              >
+                <span class="i-lucide-maximize-2 size-3" />
+                {{ t('TASKS.DETAIL.OPEN_FULL') }}
+              </router-link>
+            </div>
+
             <div v-if="conversations.length > 1" class="flex flex-wrap gap-1.5">
               <button
                 v-for="conversation in conversations"
@@ -867,7 +1024,7 @@ const onTabChange = tab => {
           class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white rounded-lg bg-n-brand hover:opacity-90"
         >
           <span class="i-lucide-external-link size-4" />
-          {{ t('TASKS.DETAIL.OPEN_IN_CRM') }}
+          {{ t('TASKS.DETAIL.OPEN_IN_CRM', { crm: crmName }) }}
         </a>
       </div>
     </template>
