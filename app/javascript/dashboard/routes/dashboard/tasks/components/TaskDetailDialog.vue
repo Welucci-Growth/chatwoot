@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { useAccount } from 'dashboard/composables/useAccount';
 import { useI18n } from 'vue-i18n';
 import TasksAPI from 'dashboard/api/tasks';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
@@ -16,6 +17,8 @@ const props = defineProps({
 const { t } = useI18n();
 
 const FIELD_PREVIEW_COUNT = 12;
+
+const { accountScopedRoute } = useAccount();
 
 const dialogRef = ref(null);
 const activeTab = ref(0);
@@ -254,6 +257,16 @@ const tabs = computed(() =>
 
 // Everything below comes from the card itself. Rows with no value are dropped, so the panel
 // shows what this deal actually has rather than a grid of blanks.
+// The mirror links the card to a Chatwoot contact when it can match by email or phone.
+// Where that worked, the agent can jump straight to the person and their conversations.
+const linkedContact = computed(() => props.task?.contact || null);
+
+const contactRoute = computed(() =>
+  linkedContact.value
+    ? accountScopedRoute('contacts_edit', { contactId: linkedContact.value.id })
+    : null
+);
+
 const summaryRows = computed(() => {
   if (!isHubspot.value) return [];
   const c = crm.value;
@@ -431,6 +444,18 @@ const onTabChange = tab => {
               </span>
             </div>
           </div>
+
+          <router-link
+            v-if="contactRoute"
+            :to="contactRoute"
+            class="inline-flex items-center self-start gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-n-brand text-white hover:opacity-90"
+            @click="close"
+          >
+            <span class="i-lucide-messages-square size-3.5" />
+            {{
+              t('TASKS.DETAIL.OPEN_CONVERSATION', { name: linkedContact.name })
+            }}
+          </router-link>
 
           <div
             v-if="person?.emails?.length || person?.phones?.length"

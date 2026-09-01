@@ -98,7 +98,8 @@
         "UPDATED": "Última alteração",
         "LOST_REASON": "Motivo da perda",
         "DEAL_ID": "Id no HubSpot"
-      }
+      },
+      "OPEN_CONVERSATION": "Abrir conversa com {name}"
     }
   }
 }
