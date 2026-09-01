@@ -43,7 +43,7 @@ class Crm::Hubspot::ProcessorService
     email = props['email'].to_s.downcase.presence
     phone = props['phone'].presence
 
-    (email && @account.contacts.from_email(email)) || (phone && @account.contacts.find_by(phone_number: phone))
+    (email && @account.contacts.from_email(email)) || (phone && Crm::ContactMatcher.by_phone(@account, phone))
   end
 
   private

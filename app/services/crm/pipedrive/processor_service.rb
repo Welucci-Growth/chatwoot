@@ -185,7 +185,8 @@ class Crm::Pipedrive::ProcessorService
     emails = Array(person['email']).filter_map { |entry| entry['value'].presence&.downcase }
     phones = Array(person['phone']).filter_map { |entry| entry['value'].presence }
 
-    @account.contacts.where(email: emails).first || @account.contacts.where(phone_number: phones).first
+    @account.contacts.where(email: emails).first ||
+      phones.lazy.filter_map { |phone| Crm::ContactMatcher.by_phone(@account, phone) }.first
   end
 
   def crm_base_url
