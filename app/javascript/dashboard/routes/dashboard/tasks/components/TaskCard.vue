@@ -16,10 +16,14 @@ const dueLabel = computed(() => {
   return new Date(props.task.dueOn * 1000).toLocaleDateString();
 });
 
-// The shortcut out to the CRM, whichever one mirrored this card.
-const crmUrl = computed(() => {
+// The shortcut out to the CRM that mirrored this card. The chip carries the CRM's own
+// name, so it is a brand rather than a translatable string.
+const crm = computed(() => {
   const attrs = props.task.customAttributes || {};
-  return attrs.pipedrive?.url || attrs.hubspot?.url || '';
+  if (attrs.pipedrive?.url)
+    return { name: 'Pipedrive', url: attrs.pipedrive.url };
+  if (attrs.hubspot?.url) return { name: 'HubSpot', url: attrs.hubspot.url };
+  return null;
 });
 </script>
 
@@ -45,15 +49,15 @@ const crmUrl = computed(() => {
     </p>
 
     <a
-      v-if="crmUrl"
-      :href="crmUrl"
+      v-if="crm"
+      :href="crm.url"
       target="_blank"
       rel="noopener noreferrer"
       class="inline-flex items-center self-start gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-medium bg-n-alpha-2 text-n-slate-11 hover:text-n-brand"
       @click.stop
     >
       <span class="i-lucide-external-link size-3" />
-      {{ t('TASKS.PIPEDRIVE_LINK') }}
+      {{ crm.name }}
     </a>
 
     <div v-if="task.labels?.length" class="flex flex-wrap items-center gap-1">
