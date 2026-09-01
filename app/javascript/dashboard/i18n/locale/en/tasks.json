@@ -80,7 +80,8 @@
         "FILES": "Anexos",
         "NOTES": "Notas",
         "ACTIVITIES": "Atividades",
-        "HISTORY": "Histórico"
+        "HISTORY": "Histórico",
+        "CONVERSATION": "Conversa"
       },
       "PENDING": "Pendentes",
       "DONE": "Concluídas",
@@ -98,7 +99,9 @@
         "LOST_REASON": "Motivo da perda",
         "DEAL_ID": "Id no HubSpot"
       },
-      "OPEN_CONVERSATION": "Abrir conversa com {name}"
+      "OPEN_CONTACT": "Abrir ficha de {name}",
+      "CONVERSATION_EMPTY": "Ainda não há conversa com {name} no Chatwoot.",
+      "CONVERSATION_ERROR": "Não foi possível carregar a conversa."
     }
   }
 }

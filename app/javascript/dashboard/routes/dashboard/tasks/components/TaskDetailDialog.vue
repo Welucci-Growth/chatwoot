@@ -1,5 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useStore } from 'vuex';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useI18n } from 'vue-i18n';
 import TasksAPI from 'dashboard/api/tasks';
@@ -8,6 +9,8 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
+import ConversationBox from 'dashboard/components/widgets/conversation/ConversationBox.vue';
+import ContactAPI from 'dashboard/api/contacts';
 
 const props = defineProps({
   task: { type: Object, default: null },
@@ -19,6 +22,7 @@ const { t } = useI18n();
 const FIELD_PREVIEW_COUNT = 12;
 
 const { accountScopedRoute } = useAccount();
+const store = useStore();
 
 const dialogRef = ref(null);
 const activeTab = ref(0);
@@ -26,6 +30,10 @@ const showAllFields = ref(false);
 const isLoading = ref(false);
 const hasFailed = ref(false);
 const panel = ref({});
+const conversations = ref([]);
+const activeConversationId = ref(null);
+const isLoadingConversations = ref(false);
+const conversationsFailed = ref(false);
 const previews = ref({});
 
 // Cards can come from either CRM. HubSpot cards carry everything they need already, so the
@@ -140,6 +148,9 @@ const releasePreviews = () => {
 
 const open = () => {
   activeTab.value = 0;
+  conversations.value = [];
+  activeConversationId.value = null;
+  conversationsFailed.value = false;
   showAllFields.value = isHubspot.value;
   panel.value = {};
   releasePreviews();
@@ -257,7 +268,7 @@ const legacyTabs = computed(() =>
 );
 
 // Abas vazias nao aparecem: o objetivo e justamente nao repetir o Pipedrive poluido.
-const tabs = computed(() =>
+const crmTabs = computed(() =>
   isHubspot.value
     ? [{ key: 'overview', label: t('TASKS.DETAIL.TABS.OVERVIEW') }]
     : legacyTabs.value
@@ -274,6 +285,51 @@ const contactRoute = computed(() =>
     ? accountScopedRoute('contacts_edit', { contactId: linkedContact.value.id })
     : null
 );
+
+const tabs = computed(() =>
+  linkedContact.value
+    ? [
+        ...crmTabs.value,
+        { key: 'conversation', label: t('TASKS.DETAIL.TABS.CONVERSATION') },
+      ]
+    : crmTabs.value
+);
+
+const inboxName = conversation =>
+  store.getters['inboxes/getInbox'](conversation.inbox_id)?.name || '';
+
+// The thread is the standard conversation pane, so the agent reads and answers the client
+// with the same tools as the inbox instead of a read-only copy of the history.
+const openConversation = async conversationId => {
+  activeConversationId.value = null;
+  await store.dispatch('getConversation', conversationId);
+  const conversation = store.getters.getConversationById(conversationId);
+  if (!conversation) return;
+
+  await store.dispatch('setActiveChat', { data: conversation });
+  activeConversationId.value = conversationId;
+};
+
+// Loaded only when the tab is opened: most card views never need it.
+const loadConversations = async () => {
+  if (!linkedContact.value || isLoadingConversations.value) return;
+
+  isLoadingConversations.value = true;
+  conversationsFailed.value = false;
+  try {
+    const { data } = await ContactAPI.getConversations(linkedContact.value.id);
+    conversations.value = [...data.payload].sort(
+      (a, b) => (b.last_activity_at || 0) - (a.last_activity_at || 0)
+    );
+    if (conversations.value.length) {
+      await openConversation(conversations.value[0].id);
+    }
+  } catch (error) {
+    conversationsFailed.value = true;
+  } finally {
+    isLoadingConversations.value = false;
+  }
+};
 
 const summaryRows = computed(() => {
   if (!isHubspot.value) return [];
@@ -328,6 +384,11 @@ const summaryRows = computed(() => {
 const currentTab = computed(
   () => tabs.value[activeTab.value]?.key || 'overview'
 );
+
+watch(currentTab, tab => {
+  if (tab === 'conversation' && !conversations.value.length)
+    loadConversations();
+});
 
 // O TabBar emite a aba, nao o indice.
 const onTabChange = tab => {
@@ -459,10 +520,8 @@ const onTabChange = tab => {
             class="inline-flex items-center self-start gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-n-brand text-white hover:opacity-90"
             @click="close"
           >
-            <span class="i-lucide-messages-square size-3.5" />
-            {{
-              t('TASKS.DETAIL.OPEN_CONVERSATION', { name: linkedContact.name })
-            }}
+            <span class="i-lucide-user-round size-3.5" />
+            {{ t('TASKS.DETAIL.OPEN_CONTACT', { name: linkedContact.name }) }}
           </router-link>
 
           <div
@@ -540,6 +599,65 @@ const onTabChange = tab => {
               }}
             </button>
           </div>
+        </div>
+
+        <div
+          v-else-if="currentTab === 'conversation'"
+          class="flex flex-col gap-3"
+        >
+          <div
+            v-if="isLoadingConversations"
+            class="flex items-center justify-center py-10"
+          >
+            <Spinner />
+          </div>
+
+          <p
+            v-else-if="conversationsFailed"
+            class="py-6 text-xs text-center text-n-ruby-11"
+          >
+            {{ t('TASKS.DETAIL.CONVERSATION_ERROR') }}
+          </p>
+
+          <p
+            v-else-if="!conversations.length"
+            class="py-6 text-xs text-center text-n-slate-11"
+          >
+            {{
+              t('TASKS.DETAIL.CONVERSATION_EMPTY', { name: linkedContact.name })
+            }}
+          </p>
+
+          <template v-else>
+            <div v-if="conversations.length > 1" class="flex flex-wrap gap-1.5">
+              <button
+                v-for="conversation in conversations"
+                :key="conversation.id"
+                class="inline-flex items-center gap-1.5 px-2 py-1 text-xs rounded-lg"
+                :class="
+                  conversation.id === activeConversationId
+                    ? 'bg-n-brand text-white'
+                    : 'bg-n-alpha-2 text-n-slate-11 hover:text-n-brand'
+                "
+                @click="openConversation(conversation.id)"
+              >
+                <span class="i-lucide-message-square size-3" />
+                {{ inboxName(conversation) || `#${conversation.id}` }}
+              </button>
+            </div>
+
+            <div
+              class="flex flex-col overflow-hidden border rounded-lg h-[60vh] min-h-96 border-n-weak"
+            >
+              <ConversationBox
+                v-if="activeConversationId"
+                class="flex-grow min-h-0"
+                :inbox-id="0"
+                :is-contact-panel-open="false"
+                :is-on-expanded-layout="false"
+              />
+            </div>
+          </template>
         </div>
 
         <div v-else-if="currentTab === 'products'" class="flex flex-col gap-2">
