@@ -120,9 +120,6 @@ const downloadFile = async file => {
 };
 
 const loadPanel = async () => {
-  // HubSpot cards are self contained, and the account asked for no calls to their CRM.
-  if (isHubspot.value) return;
-
   isLoading.value = true;
   hasFailed.value = false;
   try {
@@ -166,13 +163,23 @@ const hasHiddenFields = computed(
   () => fields.value.length > FIELD_PREVIEW_COUNT
 );
 
+// HubSpot has no single status field; the outcome shows up as the closed flag, a lost
+// reason, or simply the stage the deal sits in.
+const hubspotStatus = computed(() => {
+  const c = crm.value;
+  const stage = (props.task?.taskColumn?.name || '').toUpperCase();
+  if (c.closed_won === 'true' || stage === 'GANHO') return 'won';
+  if (c.lost_reason || stage === 'PERDIDO') return 'lost';
+  return 'open';
+});
+
 const statusLabel = computed(
   () =>
     ({
       won: t('TASKS.DETAIL.STATUS.WON'),
       lost: t('TASKS.DETAIL.STATUS.LOST'),
       open: t('TASKS.DETAIL.STATUS.OPEN'),
-    })[crm.value.status] || ''
+    })[isHubspot.value ? hubspotStatus.value : crm.value.status] || ''
 );
 
 const statusTone = computed(
@@ -180,7 +187,8 @@ const statusTone = computed(
     ({
       won: 'bg-n-teal-3 text-n-teal-11',
       lost: 'bg-n-ruby-3 text-n-ruby-11',
-    })[crm.value.status] || 'bg-n-alpha-2 text-n-slate-11'
+    })[isHubspot.value ? hubspotStatus.value : crm.value.status] ||
+    'bg-n-alpha-2 text-n-slate-11'
 );
 
 const stats = computed(() =>

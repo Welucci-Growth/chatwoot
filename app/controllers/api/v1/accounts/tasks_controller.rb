@@ -32,7 +32,12 @@ class Api::V1::Accounts::TasksController < Api::V1::Accounts::BaseController
 
   # Products, files, notes and activities of the mirrored CRM record, read on demand.
   def crm_panel
-    render json: Crm::Pipedrive::DealPanelService.new(@task).perform
+    render json: panel_service.new(@task).perform
+  end
+
+  # Cards can mirror either CRM; the HubSpot panel is assembled from stored data only.
+  def panel_service
+    @task.custom_attributes['hubspot'].present? ? Crm::Hubspot::DealPanelService : Crm::Pipedrive::DealPanelService
   end
 
   def crm_file
