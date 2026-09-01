@@ -143,10 +143,11 @@ const openNewTask = column => {
   nextTick(() => taskDialogRef.value.open());
 };
 
-// Cards espelhados do Pipedrive abrem a visao de detalhe: o CRM e a fonte da verdade,
+// Cards espelhados de um CRM abrem a visao de detalhe: o CRM e a fonte da verdade,
 // entao nao faz sentido oferecer o formulario de edicao neles.
 const openTask = (task, column) => {
-  if (task.customAttributes?.pipedrive) {
+  const attrs = task.customAttributes || {};
+  if (attrs.pipedrive || attrs.hubspot) {
     detailContext.value = { task, stageName: column?.name || '' };
     nextTick(() => taskDetailDialogRef.value.open());
     return;

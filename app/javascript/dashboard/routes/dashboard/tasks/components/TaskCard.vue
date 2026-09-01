@@ -16,9 +16,11 @@ const dueLabel = computed(() => {
   return new Date(props.task.dueOn * 1000).toLocaleDateString();
 });
 
-const pipedriveUrl = computed(
-  () => props.task.customAttributes?.pipedrive?.url || ''
-);
+// The shortcut out to the CRM, whichever one mirrored this card.
+const crmUrl = computed(() => {
+  const attrs = props.task.customAttributes || {};
+  return attrs.pipedrive?.url || attrs.hubspot?.url || '';
+});
 </script>
 
 <template>
@@ -43,8 +45,8 @@ const pipedriveUrl = computed(
     </p>
 
     <a
-      v-if="pipedriveUrl"
-      :href="pipedriveUrl"
+      v-if="crmUrl"
+      :href="crmUrl"
       target="_blank"
       rel="noopener noreferrer"
       class="inline-flex items-center self-start gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-medium bg-n-alpha-2 text-n-slate-11 hover:text-n-brand"
