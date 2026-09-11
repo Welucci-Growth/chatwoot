@@ -2,8 +2,6 @@
 # becomes visible to them once a lead exists there. Created at most once per conversation:
 # the lead id is kept on the conversation, and a second call returns it instead of a twin.
 class Crm::Hubspot::LeadCreationService
-  SOCIAL_CHANNELS = ['Channel::Instagram', 'Channel::FacebookPage'].freeze
-
   def initialize(conversation)
     @conversation = conversation
     @account = conversation.account
@@ -44,13 +42,8 @@ class Crm::Hubspot::LeadCreationService
       hs_lead_name: contact.name.presence || "Lead #{@conversation.display_id}",
       hs_pipeline: pipeline_id,
       hs_pipeline_stage: stage_id,
-      hs_lead_type: 'NEW_BUSINESS',
-      hs_lead_source: source
+      hs_lead_type: 'NEW_BUSINESS'
     }
-  end
-
-  def source
-    SOCIAL_CHANNELS.include?(@conversation.inbox.channel_type) ? 'SOCIAL_MEDIA' : 'OFFLINE'
   end
 
   # The HubSpot id is cached on the Chatwoot contact, so a client who comes back tomorrow
