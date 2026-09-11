@@ -12,6 +12,10 @@ class Crm::Hubspot::Api::Client
     hs_is_closed_won closed_lost_reason
   ].freeze
 
+  CONTACT_PROPERTIES = %w[email phone firstname lastname].freeze
+  # HubSpot's own "Primary" association between a lead and the contact behind it.
+  LEAD_CONTACT_PRIMARY = 578
+
   class ApiError < StandardError; end
 
   def initialize(access_token)
@@ -66,13 +70,33 @@ class Crm::Hubspot::Api::Client
     contact_ids.uniq.each_slice(BATCH_SIZE).with_object({}) do |slice, index|
       body = request(:post, '/crm/v3/objects/contacts/batch/read',
                      body: { inputs: slice.map { |id| { id: id.to_s } },
-                             properties: %w[email phone firstname lastname] }.to_json)
+                             properties: CONTACT_PROPERTIES }.to_json)
       Array(body['results']).each { |contact| index[contact['id'].to_s] = contact }
     end
   end
 
   def deal_properties
     request(:get, '/crm/v3/properties/deals')['results'] || []
+  end
+
+  # A lead only exists attached to a contact, so the association travels in the same call
+  # that creates it — HubSpot rejects a lead that reaches it on its own.
+  def create_lead(properties:, contact_id:)
+    request(:post, '/crm/v3/objects/leads',
+            body: { properties: properties,
+                    associations: [{ to: { id: contact_id.to_s },
+                                     types: [{ associationCategory: 'HUBSPOT_DEFINED',
+                                               associationTypeId: LEAD_CONTACT_PRIMARY }] }] }.to_json)
+  end
+
+  def create_contact(properties)
+    request(:post, '/crm/v3/objects/contacts', body: { properties: properties }.to_json)
+  end
+
+  def find_contact(property, value)
+    search('/crm/v3/objects/contacts/search',
+           properties: CONTACT_PROPERTIES,
+           filters: [{ propertyName: property, operator: 'EQ', value: value }]).first
   end
 
   private

@@ -50,6 +50,8 @@ const save = async () => {
       model: settings.value.model,
       required_label: settings.value.required_label,
       enabled: settings.value.enabled,
+      lead_pipeline_id: settings.value.lead_pipeline_id,
+      lead_stage_id: settings.value.lead_stage_id,
     });
     useAlert(t('LUCI.SAVED'));
   } catch (error) {
@@ -227,6 +229,36 @@ onMounted(load);
               class="w-full mb-2"
             />
             <p class="text-sm text-n-slate-11">{{ $t('LUCI.LABEL_HINT') }}</p>
+          </div>
+          <div>
+            <h2 class="mb-3 text-sm font-medium text-n-slate-12">
+              {{ $t('LUCI.LEAD.TITLE') }}
+            </h2>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label class="block mb-1 text-xs text-n-slate-11">
+                  {{ $t('LUCI.LEAD.PIPELINE') }}
+                </label>
+                <input
+                  v-model="settings.lead_pipeline_id"
+                  type="text"
+                  class="w-full mb-0"
+                />
+              </div>
+              <div>
+                <label class="block mb-1 text-xs text-n-slate-11">
+                  {{ $t('LUCI.LEAD.STAGE') }}
+                </label>
+                <input
+                  v-model="settings.lead_stage_id"
+                  type="text"
+                  class="w-full mb-0"
+                />
+              </div>
+            </div>
+            <p class="mt-2 text-sm text-n-slate-11">
+              {{ $t('LUCI.LEAD.HINT') }}
+            </p>
           </div>
         </section>
 

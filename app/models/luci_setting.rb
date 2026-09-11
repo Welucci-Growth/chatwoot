@@ -7,6 +7,8 @@
 #  id             :bigint           not null, primary key
 #  enabled        :boolean          default(FALSE), not null
 #  knowledge      :text
+#  lead_pipeline_id :string
+#  lead_stage_id  :string
 #  model          :string           default("claude-haiku-4-5"), not null
 #  required_label :string           default("luci"), not null
 #  system_prompt  :text

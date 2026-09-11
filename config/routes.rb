@@ -147,6 +147,7 @@ Rails.application.routes.draw do
           # Group ids are JIDs ending in ".us", which Rails would read as a format segment,
           # so they travel as parameters instead of path segments.
           resource :luci_settings, only: [:show, :update]
+          resources :luci_leads, only: [:create]
           resources :group_team_members, only: [:index, :create, :destroy] do
             post :sync, on: :collection
           end

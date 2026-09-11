@@ -7,7 +7,8 @@ module AccessTokenAuthHelper
     'api/v1/accounts/conversations/assignments' => ['create'],
     'api/v1/accounts/conversations/labels' => %w[index create],
     # LUCI fetches her own prompt and knowledge base on every message.
-    'api/v1/accounts/luci_settings' => ['show']
+    'api/v1/accounts/luci_settings' => ['show'],
+    'api/v1/accounts/luci_leads' => ['create']
   }.freeze
 
   def ensure_access_token

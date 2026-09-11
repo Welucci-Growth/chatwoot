@@ -47,6 +47,12 @@
       "HAIKU": "Cheapest. Enough for everyday support.",
       "SONNET": "Middle ground, about twice Haiku.",
       "OPUS": "Most capable, about five times Haiku."
+    },
+    "LEAD": {
+      "TITLE": "Lead no HubSpot",
+      "PIPELINE": "ID do funil",
+      "STAGE": "ID da etapa",
+      "HINT": "Quando o cliente chamar numa conversa com a etiqueta, a Luci cria o lead nesse funil e etapa. Deixe em branco para não criar nada no HubSpot."
     }
   }
 }
