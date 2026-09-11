@@ -39,11 +39,31 @@ class Crm::Hubspot::LeadCreationService
     pipeline_id, stage_id = destination
 
     {
-      hs_lead_name: contact.name.presence || "Lead #{@conversation.display_id}",
+      hs_lead_name: lead_name,
       hs_pipeline: pipeline_id,
       hs_pipeline_stage: stage_id,
-      hs_lead_type: 'NEW_BUSINESS'
-    }
+      hs_lead_type: 'NEW_BUSINESS',
+      origem: origin
+    }.compact_blank
+  end
+
+  # An SDR opening this card needs to reach the person on Instagram, and the display name
+  # ("Kauã") is neither unique nor searchable there — the handle is.
+  def lead_name
+    return "@#{handle}" if handle.present?
+
+    contact.name.presence || "Lead #{@conversation.display_id}"
+  end
+
+  def handle
+    attributes = contact.additional_attributes
+    attributes['social_instagram_user_name'].presence || attributes.dig('social_profiles', 'instagram')
+  end
+
+  # "Instagram" is already one of the values the team uses in this field, so the card joins
+  # their reporting instead of creating a spelling of its own.
+  def origin
+    'Instagram' if @conversation.inbox.channel_type == 'Channel::Instagram'
   end
 
   # The HubSpot id is cached on the Chatwoot contact, so a client who comes back tomorrow
