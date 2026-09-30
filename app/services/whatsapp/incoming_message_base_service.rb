@@ -219,6 +219,9 @@ class Whatsapp::IncomingMessageBaseService
 
     phone_number = "+#{message_phone_number}"
     formatted_phone_number = TelephoneNumber.parse(phone_number).international_number
-    @contact.name == phone_number || @contact.name == formatted_phone_number
+    # A contact first seen without a profile name is created from the wa_id, which carries the
+    # digits with no plus sign. That spelling was missing here, so those contacts kept the
+    # number as their name even once WhatsApp did send the real one.
+    @contact.name.in?([phone_number, formatted_phone_number, message_phone_number])
   end
 end
