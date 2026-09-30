@@ -87,7 +87,9 @@ class Crm::Hubspot::LeadCreationService
   # attaches to the same person instead of spawning a duplicate.
   def hubspot_contact_id
     cached = contact.additional_attributes.dig('external', 'hubspot_id')
-    return cached if cached.present?
+    # The cached id can point at a contact HubSpot has since deleted or merged away. Using it
+    # makes the lead fail to associate, so the person is looked up again and the id refreshed.
+    return cached if cached.present? && client.contact_exists?(cached)
 
     record = matching_contact || client.create_contact(contact_properties)
     contact.additional_attributes = contact.additional_attributes.deep_merge(

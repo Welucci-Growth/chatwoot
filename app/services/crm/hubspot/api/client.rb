@@ -89,18 +89,14 @@ class Crm::Hubspot::Api::Client
                                                associationTypeId: LEAD_CONTACT_PRIMARY }] }] }.to_json)
   end
 
-  # A lead can be deleted or discarded on the HubSpot side after we record its id, so the id
-  # alone is not proof that the card is still on the board.
-  #
-  # Asked by id rather than through search: HubSpot's search index trails creation by minutes,
-  # so a lead created moments ago reads as missing there — and would be created a second time.
+  # An id we stored is not proof the record is still there: HubSpot deletes and merges records
+  # on its own, and both leave the old id pointing at nothing.
   def lead_exists?(lead_id)
-    throttle
-    response = self.class.get("/crm/v3/objects/leads/#{lead_id}", headers: headers, timeout: 60)
-    return false if response.code == 404
-    raise ApiError, "HubSpot GET lead #{lead_id}: #{response.code}" unless response.success?
+    record_exists?("/crm/v3/objects/leads/#{lead_id}")
+  end
 
-    true
+  def contact_exists?(contact_id)
+    record_exists?("/crm/v3/objects/contacts/#{contact_id}")
   end
 
   # HubSpot itself creates a lead for everyone who arrives through an ad, so the contact is
@@ -121,6 +117,17 @@ class Crm::Hubspot::Api::Client
   end
 
   private
+
+  # Asked by id rather than through search: HubSpot's search index trails creation by minutes,
+  # so a record created moments ago reads as missing there — and would be created twice.
+  def record_exists?(path)
+    throttle
+    response = self.class.get(path, headers: headers, timeout: 60)
+    return false if response.code == 404
+    raise ApiError, "HubSpot GET #{path}: #{response.code}" unless response.success?
+
+    true
+  end
 
   def search(path, filters:, properties: DEAL_PROPERTIES)
     results = []
