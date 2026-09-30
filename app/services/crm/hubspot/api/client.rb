@@ -91,11 +91,16 @@ class Crm::Hubspot::Api::Client
 
   # A lead can be deleted or discarded on the HubSpot side after we record its id, so the id
   # alone is not proof that the card is still on the board.
+  #
+  # Asked by id rather than through search: HubSpot's search index trails creation by minutes,
+  # so a lead created moments ago reads as missing there — and would be created a second time.
   def lead_exists?(lead_id)
-    body = request(:post, '/crm/v3/objects/leads/search',
-                   body: { filterGroups: [{ filters: [{ propertyName: 'hs_object_id', operator: 'EQ', value: lead_id.to_s }] }],
-                           properties: ['hs_object_id'], limit: 1 }.to_json)
-    body['total'].to_i.positive?
+    throttle
+    response = self.class.get("/crm/v3/objects/leads/#{lead_id}", headers: headers, timeout: 60)
+    return false if response.code == 404
+    raise ApiError, "HubSpot GET lead #{lead_id}: #{response.code}" unless response.success?
+
+    true
   end
 
   # HubSpot itself creates a lead for everyone who arrives through an ad, so the contact is
