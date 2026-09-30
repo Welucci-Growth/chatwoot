@@ -11,7 +11,10 @@ class Crm::Hubspot::LeadCreationService
 
   def perform
     return { status: 'nao_configurado' } if destination.blank?
-    return { status: 'ja_existe', lead_id: existing_lead_id } if existing_lead_id.present?
+    # The id we stored is not proof the card is still there: a lead can be deleted or
+    # discarded inside HubSpot afterwards, and trusting the id would leave the client with no
+    # lead at all — silently, and precisely when someone is waiting to be served.
+    return { status: 'ja_existe', lead_id: existing_lead_id } if still_on_the_board?
 
     contact_id = hubspot_contact_id
     known = client.contact_lead_id(contact_id)
@@ -34,6 +37,10 @@ class Crm::Hubspot::LeadCreationService
 
   def existing_lead_id
     @conversation.custom_attributes['hubspot_lead_id']
+  end
+
+  def still_on_the_board?
+    existing_lead_id.present? && client.lead_exists?(existing_lead_id)
   end
 
   def remember(lead_id)

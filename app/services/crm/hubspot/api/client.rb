@@ -89,6 +89,15 @@ class Crm::Hubspot::Api::Client
                                                associationTypeId: LEAD_CONTACT_PRIMARY }] }] }.to_json)
   end
 
+  # A lead can be deleted or discarded on the HubSpot side after we record its id, so the id
+  # alone is not proof that the card is still on the board.
+  def lead_exists?(lead_id)
+    body = request(:post, '/crm/v3/objects/leads/search',
+                   body: { filterGroups: [{ filters: [{ propertyName: 'hs_object_id', operator: 'EQ', value: lead_id.to_s }] }],
+                           properties: ['hs_object_id'], limit: 1 }.to_json)
+    body['total'].to_i.positive?
+  end
+
   # HubSpot itself creates a lead for everyone who arrives through an ad, so the contact is
   # asked first — otherwise the same person would end up on the board twice.
   def contact_lead_id(contact_id)
