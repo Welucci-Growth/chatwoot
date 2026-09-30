@@ -89,6 +89,13 @@ class Crm::Hubspot::Api::Client
                                                associationTypeId: LEAD_CONTACT_PRIMARY }] }] }.to_json)
   end
 
+  # HubSpot itself creates a lead for everyone who arrives through an ad, so the contact is
+  # asked first — otherwise the same person would end up on the board twice.
+  def contact_lead_id(contact_id)
+    body = request(:get, "/crm/v4/objects/contacts/#{contact_id}/associations/leads")
+    Array(body['results']).first&.dig('toObjectId')
+  end
+
   def create_contact(properties)
     request(:post, '/crm/v3/objects/contacts', body: { properties: properties }.to_json)
   end

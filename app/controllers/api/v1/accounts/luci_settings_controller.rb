@@ -22,7 +22,7 @@ class Api::V1::Accounts::LuciSettingsController < Api::V1::Accounts::BaseControl
   end
 
   def permitted_params
-    params.permit(:system_prompt, :knowledge, :model, :required_label, :enabled, :lead_pipeline_id, :lead_stage_id)
+    params.permit(:system_prompt, :knowledge, :model, :required_label, :enabled, :lead_pipeline_id, :lead_stage_id, :lead_label)
   end
 
   # What she actually did, so the screen reports reality instead of only holding settings.

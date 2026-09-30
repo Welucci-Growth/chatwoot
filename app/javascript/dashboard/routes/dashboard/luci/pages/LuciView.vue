@@ -52,6 +52,7 @@ const save = async () => {
       enabled: settings.value.enabled,
       lead_pipeline_id: settings.value.lead_pipeline_id,
       lead_stage_id: settings.value.lead_stage_id,
+      lead_label: settings.value.lead_label,
     });
     useAlert(t('LUCI.SAVED'));
   } catch (error) {
@@ -234,7 +235,17 @@ onMounted(load);
             <h2 class="mb-3 text-sm font-medium text-n-slate-12">
               {{ $t('LUCI.LEAD.TITLE') }}
             </h2>
-            <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid gap-3 sm:grid-cols-3">
+              <div>
+                <label class="block mb-1 text-xs text-n-slate-11">
+                  {{ $t('LUCI.LEAD.LABEL') }}
+                </label>
+                <input
+                  v-model="settings.lead_label"
+                  type="text"
+                  class="w-full mb-0"
+                />
+              </div>
               <div>
                 <label class="block mb-1 text-xs text-n-slate-11">
                   {{ $t('LUCI.LEAD.PIPELINE') }}

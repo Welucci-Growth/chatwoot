@@ -13,7 +13,14 @@ class Crm::Hubspot::LeadCreationService
     return { status: 'nao_configurado' } if destination.blank?
     return { status: 'ja_existe', lead_id: existing_lead_id } if existing_lead_id.present?
 
-    lead = client.create_lead(properties: lead_properties, contact_id: hubspot_contact_id)
+    contact_id = hubspot_contact_id
+    known = client.contact_lead_id(contact_id)
+    if known.present?
+      remember(known)
+      return { status: 'ja_no_hubspot', lead_id: known }
+    end
+
+    lead = client.create_lead(properties: lead_properties, contact_id: contact_id)
     remember(lead['id'])
     { status: 'criado', lead_id: lead['id'] }
   end
@@ -63,7 +70,10 @@ class Crm::Hubspot::LeadCreationService
   # "Instagram" is already one of the values the team uses in this field, so the card joins
   # their reporting instead of creating a spelling of its own.
   def origin
-    'Instagram' if @conversation.inbox.channel_type == 'Channel::Instagram'
+    case @conversation.inbox.channel_type
+    when 'Channel::Instagram' then 'Instagram'
+    when 'Channel::Whatsapp' then 'WhatsApp'
+    end
   end
 
   # The HubSpot id is cached on the Chatwoot contact, so a client who comes back tomorrow

@@ -14,6 +14,7 @@ class AsyncDispatcher < BaseDispatcher
       CampaignListener.instance,
       CsatSurveyListener.instance,
       HookListener.instance,
+      HubspotLeadListener.instance,
       InstallationWebhookListener.instance,
       NotificationListener.instance,
       ParticipationListener.instance,

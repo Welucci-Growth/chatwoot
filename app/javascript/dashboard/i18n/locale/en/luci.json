@@ -52,7 +52,8 @@
       "TITLE": "Lead no HubSpot",
       "PIPELINE": "ID do funil",
       "STAGE": "ID da etapa",
-      "HINT": "Quando o cliente chamar numa conversa com a etiqueta, a Luci cria o lead nesse funil e etapa. Deixe em branco para não criar nada no HubSpot."
+      "HINT": "Só conversas com essa etiqueta viram lead no HubSpot, em qualquer canal. Deixe a etiqueta em branco para não enviar nada.",
+      "LABEL": "Etiqueta que envia"
     }
   }
 }
