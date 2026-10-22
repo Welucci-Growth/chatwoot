@@ -6,6 +6,8 @@ class Contacts::BulkActionService
   end
 
   def perform
+    # Deleting is only ever done on contacts someone ticked one by one.
+    return { success: false, error: 'filter_not_allowed_for_delete' } if delete_requested? && filter.present?
     return delete_contacts if delete_requested?
     return assign_labels if labels_to_add.any?
     return remove_labels if labels_to_remove.any?
@@ -39,8 +41,16 @@ class Contacts::BulkActionService
     ).perform
   end
 
+  # "Select all" on a filtered list sends the filter instead of ids, so a label reaches every
+  # contact that matches it and not only the page on screen.
   def ids
+    return Contacts::FilterService.new(@account, @user, filter).perform[:contacts].pluck(:id) if filter.present?
+
     Array(@params[:ids]).compact
+  end
+
+  def filter
+    @params[:filter].presence&.deep_stringify_keys&.with_indifferent_access
   end
 
   def labels_to_add

@@ -184,6 +184,7 @@
             "VARIABLE_PLACEHOLDER": "Enter value for {variable}"
           },
           "AUDIENCE": {
+            "SEGMENT": "Segment: {name}",
             "LABEL": "Audience",
             "PLACEHOLDER": "Select the customer labels",
             "ERROR": "Audience is required",

@@ -17,6 +17,9 @@ describe Crm::Hubspot::ContactSyncService do
   let(:hubspot_contacts) { account.contacts.where("additional_attributes -> 'external' ->> 'hubspot_id' IS NOT NULL") }
 
   before do
+    stub_request(:get, %r{api\.hubapi\.com/crm/v3/properties/contacts/}).to_return(status: 404, body: '')
+    stub_request(:get, %r{api\.hubapi\.com/crm/v3/owners})
+      .to_return(status: 200, body: { results: [] }.to_json, headers: { 'Content-Type' => 'application/json' })
     stub_request(:get, 'https://api.hubapi.com/crm/v3/lists/42')
       .to_return(status: 200, body: { list: { listId: '42', name: 'Clientes VIP' } }.to_json, headers: { 'Content-Type' => 'application/json' })
     stub_request(:get, %r{api\.hubapi\.com/crm/v3/lists/42/memberships})

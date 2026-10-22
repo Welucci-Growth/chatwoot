@@ -9,10 +9,11 @@ class Whatsapp::CampaignAudienceService
   TEST_NUMBERS_ENV = 'CAMPAIGN_TEST_PHONE_NUMBERS'.freeze
   SAMPLE_SIZE = 5
 
-  pattr_initialize [:account!, :label_ids!]
+  pattr_initialize [:account!, :label_ids!, { segment_ids: [] }]
 
   def self.for_campaign(campaign)
-    new(account: campaign.account, label_ids: campaign.audience.select { |item| item['type'] == 'Label' }.pluck('id'))
+    ids = ->(type) { campaign.audience.select { |item| item['type'] == type }.pluck('id') }
+    new(account: campaign.account, label_ids: ids.call('Label'), segment_ids: ids.call('Segment'))
   end
 
   # Each number is matched with and without the Brazilian ninth digit, as contacts are saved.
@@ -28,16 +29,16 @@ class Whatsapp::CampaignAudienceService
   end
 
   def recipients
-    scope = labelled.where(blocked: false).where.not(phone_number: [nil, '']).where.not(id: opted_out.select(:id))
+    scope = audience.where(blocked: false).where.not(phone_number: [nil, '']).where.not(id: opted_out.select(:id))
     self.class.test_mode? ? scope.where(phone_number: self.class.test_numbers) : scope
   end
 
   def summary
     {
-      labelled: labelled.count,
-      without_phone: labelled.where(phone_number: [nil, '']).count,
-      opted_out: labelled.where(id: opted_out.select(:id)).count,
-      blocked: labelled.where(blocked: true).count,
+      audience: audience.count,
+      without_phone: audience.where(phone_number: [nil, '']).count,
+      opted_out: audience.where(id: opted_out.select(:id)).count,
+      blocked: audience.where(blocked: true).count,
       recipients: recipients.count,
       test_mode: self.class.test_mode?,
       sample: recipients.reorder(:id).limit(SAMPLE_SIZE).map { |contact| { name: contact.name, phone_number: contact.phone_number } }
@@ -50,10 +51,23 @@ class Whatsapp::CampaignAudienceService
     @label_titles ||= account.labels.where(id: label_ids).pluck(:title)
   end
 
-  def labelled
-    return account.contacts.none if label_titles.empty?
+  # Anyone carrying one of the labels or matching one of the segments. A segment is a saved
+  # contact filter, read at send time, so contacts imported since it was saved are included.
+  def audience
+    @audience ||= audience_sources.map { |source| account.contacts.where(id: source.unscope(:order, :limit, :offset).reselect('contacts.id')) }
+                                  .reduce(:or) || account.contacts.none
+  end
 
-    account.contacts.tagged_with(label_titles, any: true)
+  def audience_sources
+    sources = segment_contacts
+    sources << account.contacts.tagged_with(label_titles, any: true) if label_titles.any?
+    sources
+  end
+
+  def segment_contacts
+    account.custom_filters.contact.where(id: segment_ids).map do |segment|
+      Contacts::FilterService.new(account, segment.user, segment.query.with_indifferent_access).perform[:contacts]
+    end
   end
 
   def opted_out

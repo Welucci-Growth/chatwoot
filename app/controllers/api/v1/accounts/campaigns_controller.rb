@@ -18,7 +18,8 @@ class Api::V1::Accounts::CampaignsController < Api::V1::Accounts::BaseController
 
   # Who a WhatsApp campaign on these labels would reach, without sending anything.
   def audience_preview
-    render json: Whatsapp::CampaignAudienceService.new(account: Current.account, label_ids: Array(params[:label_ids])).summary
+    render json: Whatsapp::CampaignAudienceService.new(account: Current.account, label_ids: Array(params[:label_ids]),
+                                                       segment_ids: Array(params[:segment_ids])).summary
   end
 
   def destroy

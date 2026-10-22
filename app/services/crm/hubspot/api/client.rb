@@ -1,4 +1,5 @@
-class Crm::Hubspot::Api::Client
+# Every call the CRM mirror makes to HubSpot lives here, next to the pacing they share.
+class Crm::Hubspot::Api::Client # rubocop:disable Metrics/ClassLength
   include HTTParty
   base_uri 'https://api.hubapi.com'
 
@@ -42,30 +43,39 @@ class Crm::Hubspot::Api::Client
   # modification time, which keeps each sync proportional to the changes, not the CRM size.
   # Custom properties are only returned when named explicitly, so the caller passes the
   # keys it cares about; without them the cards would carry no CRM fields at all.
-  # A window larger than the search cap is read in slices: results come oldest change first,
-  # and each slice restarts from the last modification time the previous one reached.
   def deals_changed_since(pipeline_id:, since:, extra_properties: [])
-    from = (since.to_f * 1000).round
     deals = {}
-
-    loop do
-      page = search('/crm/v3/objects/deals/search',
-                    properties: (DEAL_PROPERTIES + Array(extra_properties)).uniq,
-                    sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'ASCENDING' }],
-                    filters: [
-                      { propertyName: 'pipeline', operator: 'EQ', value: pipeline_id },
-                      { propertyName: 'hs_lastmodifieddate', operator: 'GTE', value: from }
-                    ])
-      page.each { |deal| deals[deal['id'].to_s] = deal }
-      break if page.size < SEARCH_RESULT_CAP
-
-      last = (Time.zone.parse(page.last.dig('properties', 'hs_lastmodifieddate').to_s).to_f * 1000).round
-      break if last <= from
-
-      from = last
+    each_changed_since('/crm/v3/objects/deals/search', 'hs_lastmodifieddate', since,
+                       properties: (DEAL_PROPERTIES + Array(extra_properties)).uniq,
+                       filters: [{ propertyName: 'pipeline', operator: 'EQ', value: pipeline_id }]) do |slice|
+      slice.each { |deal| deals[deal['id'].to_s] = deal }
     end
-
     deals.values
+  end
+
+  # Yields the contacts changed since the given time a slice at a time, so a busy day in the
+  # CRM never has to sit in memory all at once.
+  def each_contact_changed_since(since, properties:, &)
+    each_changed_since('/crm/v3/objects/contacts/search', 'lastmodifieddate', since, properties: properties, &)
+  end
+
+  # Walks every contact through the listing endpoint, which, unlike search, has no result cap.
+  # The cursor is handed back so an import cut short resumes where it stopped.
+  def contacts_page(after:, properties:)
+    query = { limit: PAGE_SIZE, properties: properties.join(',') }
+    query[:after] = after if after.present?
+    page = request(:get, '/crm/v3/objects/contacts', query: query)
+    [page['results'] || [], page.dig('paging', 'next', 'after')]
+  end
+
+  # Nil when the property does not exist in this portal, since custom ones vary per account.
+  def contact_property(name)
+    throttle
+    response = self.class.get("/crm/v3/properties/contacts/#{name}", headers: headers, timeout: 60)
+    return nil if response.code == 404
+    raise ApiError, "HubSpot GET contact property #{name}: #{response.code}" unless response.success?
+
+    response.parsed_response
   end
 
   # Asking per deal would cost one request each — over thirteen thousand for a single
@@ -84,13 +94,13 @@ class Crm::Hubspot::Api::Client
     end
   end
 
-  def contacts(contact_ids)
+  def contacts(contact_ids, properties: CONTACT_PROPERTIES)
     return {} if contact_ids.blank?
 
     contact_ids.uniq.each_slice(BATCH_SIZE).with_object({}) do |slice, index|
       body = request(:post, '/crm/v3/objects/contacts/batch/read',
                      body: { inputs: slice.map { |id| { id: id.to_s } },
-                             properties: CONTACT_PROPERTIES }.to_json)
+                             properties: properties }.to_json)
       Array(body['results']).each { |contact| index[contact['id'].to_s] = contact }
     end
   end
@@ -159,6 +169,24 @@ class Crm::Hubspot::Api::Client
   end
 
   private
+
+  # A window larger than the search cap is read in slices: results come oldest change first,
+  # and each slice restarts from the last modification time the previous one reached.
+  def each_changed_since(path, property, since, properties:, filters: [])
+    from = (since.to_f * 1000).round
+
+    loop do
+      slice = search(path, properties: properties, sorts: [{ propertyName: property, direction: 'ASCENDING' }],
+                           filters: filters + [{ propertyName: property, operator: 'GTE', value: from }])
+      yield slice
+      break if slice.size < SEARCH_RESULT_CAP
+
+      last = (Time.zone.parse(slice.last.dig('properties', property).to_s).to_f * 1000).round
+      break if last <= from
+
+      from = last
+    end
+  end
 
   # Asked by id rather than through search: HubSpot's search index trails creation by minutes,
   # so a record created moments ago reads as missing there — and would be created twice.

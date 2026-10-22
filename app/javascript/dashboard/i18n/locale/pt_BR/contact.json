@@ -585,6 +585,8 @@
     "LOAD_MORE": "Carregar mais"
   },
   "CONTACTS_BULK_ACTIONS": {
+    "SELECT_ALL_MATCHING": "Selecionar todos os {count} contatos do filtro",
+    "ALL_MATCHING_SELECTED": "Todos os {count} contatos do filtro selecionados",
     "ASSIGN_LABELS": "Atribuir rótulo",
     "REMOVE_LABELS": "Remover Etiquetas",
     "ASSIGN_LABELS_SUCCESS": "Rótulos atribuídos com sucesso.",

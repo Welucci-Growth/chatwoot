@@ -6,12 +6,10 @@
 class Crm::Hubspot::ContactSyncService
   LABEL_PREFIX = 'hs-'.freeze
   LABEL_COLOR = '#ff7a59'.freeze
-  LOOKUP_SLICE = 1000
 
   def initialize(hook)
     @hook = hook
     @account = hook.account
-    @processor = Crm::Hubspot::ProcessorService.new(hook)
   end
 
   # Returns the member count mirrored per list, nil for a list that could not be read.
@@ -69,76 +67,25 @@ class Crm::Hubspot::ContactSyncService
     end
   end
 
-  # Members already linked to a contact that has a phone need no details from HubSpot,
-  # which keeps the hourly run down to the membership reads once the first import is done.
+  # Members already linked need no details from HubSpot, which keeps the hourly run down to
+  # the membership reads once the first import is done.
   def resolve_contacts(hubspot_ids)
-    linked = linked_contacts(hubspot_ids)
-    people = client.contacts(hubspot_ids.reject { |id| linked[id]&.phone_number.present? })
+    linked = writer.linked_contacts(hubspot_ids)
+    people = client.contacts(hubspot_ids - linked.keys, properties: properties)
 
-    hubspot_ids.filter_map { |id| upsert_contact(id, linked[id], people[id]) }.map(&:id)
+    linked.values.map(&:id) + writer.write(people.values).values
   end
 
-  def linked_contacts(hubspot_ids)
-    hubspot_ids.each_slice(LOOKUP_SLICE).with_object({}) do |slice, index|
-      @account.contacts
-              .where("contacts.additional_attributes -> 'external' ->> 'hubspot_id' IN (?)", slice)
-              .find_each { |contact| index[contact.additional_attributes.dig('external', 'hubspot_id')] = contact }
-    end
+  def fields
+    @fields ||= Crm::Hubspot::ContactFields.new(@account, client).sync_definitions!
   end
 
-  # One bad record must not stop the list, so a contact that cannot be saved is logged and
-  # left out of the label instead of failing the whole sync.
-  def upsert_contact(hubspot_id, contact, person)
-    return contact if person.blank?
-
-    contact ||= @processor.link_contact(hubspot_id, person)
-    attributes = attributes_from(person)
-    contact.present? ? fill_blanks(contact, attributes) : create_contact(hubspot_id, attributes)
-  rescue ActiveRecord::RecordInvalid => e
-    Rails.logger.error("[HUBSPOT] contact #{hubspot_id} skipped: #{e.message}")
-    contact&.persisted? ? contact : nil
+  def writer
+    @writer ||= Crm::Hubspot::ContactWriter.new(@hook, fields: fields)
   end
 
-  def create_contact(hubspot_id, attributes)
-    return nil if attributes[:email].blank? && attributes[:phone_number].blank?
-
-    @account.contacts.create!(
-      name: attributes[:name] || attributes[:email] || attributes[:phone_number],
-      email: attributes[:email],
-      phone_number: attributes[:phone_number],
-      additional_attributes: { 'external' => { 'hubspot_id' => hubspot_id.to_s } }
-    )
-  end
-
-  # Chatwoot's own data wins: a phone that came in through WhatsApp is the one known to work,
-  # so HubSpot only fills what is missing.
-  def fill_blanks(contact, attributes)
-    contact.name = attributes[:name] if attributes[:name].present? && placeholder_name?(contact)
-    %i[email phone_number].each do |field|
-      contact[field] = attributes[field] if contact[field].blank? && available?(field, attributes[field])
-    end
-    contact.save! if contact.changed?
-    contact
-  end
-
-  # WhatsApp names a contact after its number when the profile has no name.
-  def placeholder_name?(contact)
-    contact.name.blank? || contact.name.gsub(/\D/, '') == contact.phone_number.to_s.delete('+')
-  end
-
-  def available?(field, value)
-    value.present? && !@account.contacts.exists?(field => value)
-  end
-
-  def attributes_from(person)
-    props = person['properties'] || {}
-    email = props['email'].to_s.strip.downcase.presence
-
-    {
-      name: [props['firstname'], props['lastname']].map { |part| part.to_s.strip }.compact_blank.join(' ').presence,
-      email: email&.match?(Devise.email_regexp) ? email : nil,
-      phone_number: @processor.phone_values(props).lazy.filter_map { |value| Crm::ContactMatcher.normalize_phone(value) }.first
-    }
+  def properties
+    (Crm::Hubspot::Api::Client::CONTACT_PROPERTIES + fields.properties).uniq
   end
 
   # Written straight to the taggings table: going through the model would fire a contact

@@ -19,6 +19,7 @@ const { t } = useI18n();
 const formState = {
   uiFlags: useMapGetter('campaigns/getUIFlags'),
   labels: useMapGetter('labels/getLabels'),
+  segments: useMapGetter('customViews/getContactCustomViews'),
   inboxes: useMapGetter('inboxes/getWhatsAppInboxes'),
   getFilteredWhatsAppTemplates: useMapGetter(
     'inboxes/getFilteredWhatsAppTemplates'
@@ -63,9 +64,30 @@ const mapToOptions = (items, valueKey, labelKey) =>
     label: item[labelKey],
   })) ?? [];
 
-const audienceList = computed(() =>
-  mapToOptions(formState.labels.value, 'id', 'title')
-);
+// Labels and segments share the picker, so each value carries its type: their ids overlap.
+const audienceList = computed(() => [
+  ...(formState.labels.value ?? []).map(label => ({
+    value: `Label:${label.id}`,
+    label: label.title,
+  })),
+  ...(formState.segments.value ?? []).map(segment => ({
+    value: `Segment:${segment.id}`,
+    label: t('CAMPAIGN.WHATSAPP.CREATE.FORM.AUDIENCE.SEGMENT', {
+      name: segment.name,
+    }),
+  })),
+]);
+
+const parseAudience = values =>
+  values.map(value => {
+    const [type, id] = value.split(':');
+    return { type, id: Number(id) };
+  });
+
+const audienceIdsOf = (values, type) =>
+  parseAudience(values)
+    .filter(item => item.type === type)
+    .map(item => item.id);
 
 const inboxOptions = computed(() =>
   mapToOptions(formState.inboxes.value, 'id', 'name')
@@ -154,10 +176,7 @@ const prepareCampaignDetails = () => {
     template_params: templateParams,
     inbox_id: state.inboxId,
     scheduled_at: formatToUTCString(state.scheduledAt),
-    audience: state.selectedAudience?.map(id => ({
-      id,
-      type: 'Label',
-    })),
+    audience: parseAudience(state.selectedAudience ?? []),
   };
 };
 
@@ -173,14 +192,17 @@ const handleSubmit = async () => {
 // Shows who the chosen labels reach before anything is created, using the same rules as the send.
 watch(
   () => [...state.selectedAudience],
-  async labelIds => {
+  async values => {
     audiencePreview.value = null;
-    if (!labelIds.length) return;
+    if (!values.length) return;
 
     isLoadingPreview.value = true;
     try {
-      const { data } = await CampaignsAPI.audiencePreview(labelIds);
-      if (labelIds.join() === state.selectedAudience.join()) {
+      const { data } = await CampaignsAPI.audiencePreview({
+        labelIds: audienceIdsOf(values, 'Label'),
+        segmentIds: audienceIdsOf(values, 'Segment'),
+      });
+      if (values.join() === state.selectedAudience.join()) {
         audiencePreview.value = data;
       }
     } finally {

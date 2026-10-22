@@ -1,7 +1,7 @@
 class Crm::Hubspot::ContactSyncJob < ApplicationJob
   queue_as :low
 
-  # A first import of a large list can outlast the hourly schedule; the lock keeps the next
+  # A first import of a large CRM can outlast the hourly schedule; the lock keeps the next
   # run from importing the same people alongside it and creating them twice.
   LOCK_TIMEOUT = 2.hours
 
@@ -10,7 +10,10 @@ class Crm::Hubspot::ContactSyncJob < ApplicationJob
     return if hook.blank? || hook.disabled?
 
     ran = Redis::LockManager.new.with_lock("HUBSPOT_CONTACT_SYNC::#{hook.id}", LOCK_TIMEOUT) do
-      counts = Crm::Hubspot::ContactSyncService.new(hook).perform
+      imported = Crm::Hubspot::ContactImportService.new(hook).perform
+      Rails.logger.info("[HUBSPOT] hook #{hook.id}: #{imported} contatos importados")
+
+      counts = Crm::Hubspot::ContactSyncService.new(hook.reload).perform
       Rails.logger.info("[HUBSPOT] hook #{hook.id}: listas espelhadas #{counts}") if counts.present?
     end
     Rails.logger.info("[HUBSPOT] hook #{hook.id}: contact sync already running, skipped") unless ran

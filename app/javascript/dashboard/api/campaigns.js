@@ -6,9 +6,9 @@ class CampaignsAPI extends ApiClient {
     super('campaigns', { accountScoped: true });
   }
 
-  audiencePreview(labelIds) {
+  audiencePreview({ labelIds, segmentIds }) {
     return axios.get(`${this.url}/audience_preview`, {
-      params: { label_ids: labelIds },
+      params: { label_ids: labelIds, segment_ids: segmentIds },
     });
   }
 }

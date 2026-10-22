@@ -184,6 +184,7 @@
             "VARIABLE_PLACEHOLDER": "Digite um valor para {variable}"
           },
           "AUDIENCE": {
+            "SEGMENT": "Segmento: {name}",
             "LABEL": "Público",
             "PLACEHOLDER": "Selecionar etiquetas dos clientes",
             "ERROR": "Público é necessário",

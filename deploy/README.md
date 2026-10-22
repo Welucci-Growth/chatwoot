@@ -54,14 +54,21 @@ GlobalConfig.clear_cache
 
 ## HubSpot → contatos e campanhas de WhatsApp
 
-**Sincronização (só lê o HubSpot e nunca envia mensagem):**
-- No app privado do HubSpot, o token precisa dos escopos `crm.objects.contacts.read` e `crm.lists.read`.
-- Em Configurações → Integrações → HubSpot, preencha **Listas de contatos** com os IDs das listas, separados por vírgula. O ID é o número que aparece na URL da lista.
-- Cada lista vira uma etiqueta `hs-<nome-da-lista>`. Os membros entram como contatos, cruzados por ID do HubSpot, depois e-mail, depois telefone (com ou sem o nono dígito). Quando o contato já existe, o HubSpot só preenche o que estiver em branco no Chatwoot.
-- A sincronização roda a cada hora e logo depois de salvar a configuração. Quem sai da lista perde a etiqueta. Uma lista tirada da configuração tem a etiqueta removida de todos os contatos.
+**Importação de contatos (só lê o HubSpot e nunca envia mensagem):**
+- O token do app privado precisa dos escopos `crm.objects.contacts.read`, `crm.schemas.contacts.read` e `crm.objects.owners.read`, além dos de negócios. Sem eles, a importação para com erro no log do Sidekiq em vez de importar pela metade.
+- Todo contato do HubSpot que tem telefone entra no Chatwoot, cruzado por ID do HubSpot, depois e-mail, depois telefone (com ou sem o nono dígito). Nome, e-mail e telefone do Chatwoot são mantidos; o HubSpot só preenche o que falta.
+- Os campos do HubSpot viram atributos filtráveis do contato e são sempre atualizados a partir do HubSpot: etapa do ciclo de vida, status do lead, vendedor, origem, origem Welucci (se existir no portal), cidade, estado e empresa.
+- A primeira carga percorre o HubSpot inteiro e guarda o cursor a cada página (`contacts_import` nas configurações da integração), então retoma de onde parou se for interrompida. Depois, a cada hora, lê só o que mudou.
+- A importação grava sem disparar eventos de contato: nenhum webhook (n8n) nem automação recebe os contatos importados.
+
+**Escolher o público em Contatos:**
+- Filtre pelos atributos do HubSpot e salve como **Segmento**, que é lido na hora do envio e inclui contatos importados depois.
+- Ou marque contatos e aplique uma etiqueta. Com um filtro ou segmento ativo, a barra oferece **"Selecionar todos os N contatos do filtro"**, que aplica a etiqueta em todos, e não só na página. Excluir por filtro é bloqueado.
+
+**Listas do HubSpot (opcional):** IDs em **Listas de contatos** viram etiquetas `hs-<nome-da-lista>` mantidas em sincronia (exige `crm.lists.read`).
 
 **Envio (Campanhas → WhatsApp, só inbox WhatsApp Cloud):**
-- O público são as etiquetas escolhidas. Ficam de fora automaticamente: contatos sem telefone, bloqueados e com a etiqueta `nao-enviar` (opt-out).
+- O público são as etiquetas e segmentos escolhidos. Ficam de fora automaticamente: contatos sem telefone, bloqueados e com a etiqueta `nao-enviar` (opt-out).
 - Antes de criar a campanha, o formulário mostra quantos contatos vão receber e quantos ficam de fora.
 - Cada destinatário vira uma mensagem numa conversa **adiada** (não notifica os atendentes). Quando o cliente responde, ela reabre com a campanha no histórico. O card da campanha mostra enviadas, entregues, lidas e falhas.
 - O envio é feito em lotes de 100 e não repete um contato que já recebeu, mesmo se um lote for reprocessado.

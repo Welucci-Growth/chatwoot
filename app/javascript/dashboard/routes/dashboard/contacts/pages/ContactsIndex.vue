@@ -141,6 +141,30 @@ const visibleContactIds = computed(() =>
   contacts.value.map(contact => contact.id)
 );
 
+// The filter the list on screen was fetched with, so a bulk action can reach every match
+// instead of only the page shown.
+const activeFilterQuery = computed(() => {
+  if (activeLabel.value || isSearchView.value || isActiveView.value)
+    return null;
+  if (activeSegment.value?.query) return activeSegment.value.query;
+  return hasAppliedFilters.value
+    ? filterQueryGenerator(appliedFilters.value)
+    : null;
+});
+const selectAllMatching = ref(false);
+
+// Selecting every match only holds while the whole page stays ticked.
+watch(selectedContactIds, ids => {
+  if (visibleContactIds.value.some(id => !ids.includes(id))) {
+    selectAllMatching.value = false;
+  }
+});
+
+const bulkTarget = () =>
+  selectAllMatching.value
+    ? { filter: activeFilterQuery.value }
+    : { ids: selectedContactIds.value };
+
 const clearSelection = () => {
   selectedContactIds.value = [];
 };
@@ -338,7 +362,7 @@ const assignLabels = async labels => {
   try {
     await BulkActionsAPI.create({
       type: 'Contact',
-      ids: selectedContactIds.value,
+      ...bulkTarget(),
       labels: { add: labels },
     });
     useAlert(t('CONTACTS_BULK_ACTIONS.ASSIGN_LABELS_SUCCESS'));
@@ -360,7 +384,7 @@ const removeLabels = async labels => {
   try {
     await BulkActionsAPI.create({
       type: 'Contact',
-      ids: selectedContactIds.value,
+      ...bulkTarget(),
       labels: { remove: labels },
     });
     useAlert(t('CONTACTS_BULK_ACTIONS.REMOVE_LABELS_SUCCESS'));
@@ -533,6 +557,10 @@ onMounted(async () => {
           :visible-contact-ids="visibleContactIds"
           :selected-contact-ids="selectedContactIds"
           :is-loading="isBulkActionLoading"
+          :total-count="totalItems"
+          :can-select-all-matching="!!activeFilterQuery"
+          :all-matching-selected="selectAllMatching"
+          @select-all-matching="selectAllMatching = true"
           @toggle-all="toggleSelectAll"
           @clear-selection="clearSelection"
           @assign-labels="assignLabels"

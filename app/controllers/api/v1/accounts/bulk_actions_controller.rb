@@ -56,7 +56,10 @@ class Api::V1::Accounts::BulkActionsController < Api::V1::Accounts::BaseControll
   def contact_params
     # TODO: remove this method in favor of a common params method.
     # once legacy conversation payloads are migrated.
-    append_common_bulk_attributes({})
+    # The filter is the same contact filter payload the list was fetched with; FilterService
+    # validates every attribute and operator in it.
+    base = params[:filter].present? ? { filter: params.require(:filter).permit!.to_h } : {}
+    append_common_bulk_attributes(base)
   end
 
   def append_common_bulk_attributes(base_params)

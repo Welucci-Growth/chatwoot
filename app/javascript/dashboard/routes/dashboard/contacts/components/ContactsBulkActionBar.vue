@@ -20,6 +20,18 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  totalCount: {
+    type: Number,
+    default: 0,
+  },
+  canSelectAllMatching: {
+    type: Boolean,
+    default: false,
+  },
+  allMatchingSelected: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits([
@@ -28,6 +40,7 @@ const emit = defineEmits([
   'removeLabels',
   'toggleAll',
   'deleteSelected',
+  'selectAllMatching',
 ]);
 
 const { t } = useI18n();
@@ -46,9 +59,22 @@ const selectAllLabel = computed(() => {
 });
 
 const selectedCountLabel = computed(() =>
-  t('CONTACTS_BULK_ACTIONS.SELECTED_COUNT', {
-    count: selectedCount.value,
-  })
+  props.allMatchingSelected
+    ? t('CONTACTS_BULK_ACTIONS.ALL_MATCHING_SELECTED', {
+        count: props.totalCount,
+      })
+    : t('CONTACTS_BULK_ACTIONS.SELECTED_COUNT', {
+        count: selectedCount.value,
+      })
+);
+
+// Offered once the whole page is ticked and the filter matches more than the page holds.
+const showSelectAllMatching = computed(
+  () =>
+    props.canSelectAllMatching &&
+    !props.allMatchingSelected &&
+    props.totalCount > totalVisibleContacts.value &&
+    props.visibleContactIds.every(id => props.selectedContactIds.includes(id))
 );
 
 const allItems = computed(() =>
@@ -99,6 +125,19 @@ const handleRemoveLabels = labels => {
           class="!px-1"
           @click="emit('clearSelection')"
         />
+        <Button
+          v-if="showSelectAllMatching"
+          sm
+          ghost
+          blue
+          :label="
+            t('CONTACTS_BULK_ACTIONS.SELECT_ALL_MATCHING', {
+              count: totalCount,
+            })
+          "
+          class="!px-1"
+          @click="emit('selectAllMatching')"
+        />
       </template>
       <template #actions>
         <div class="flex items-center gap-2 ml-auto">
@@ -115,8 +154,11 @@ const handleRemoveLabels = labels => {
             :disabled="!selectedCount"
             @remove="handleRemoveLabels"
           />
-          <div class="w-px h-3 bg-n-weak rounded-lg" />
-          <Policy :permissions="['administrator']">
+          <div
+            v-if="!allMatchingSelected"
+            class="w-px h-3 bg-n-weak rounded-lg"
+          />
+          <Policy v-if="!allMatchingSelected" :permissions="['administrator']">
             <Button
               v-tooltip.bottom="t('CONTACTS_BULK_ACTIONS.DELETE_CONTACTS')"
               sm

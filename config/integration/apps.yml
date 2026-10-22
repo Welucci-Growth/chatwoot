@@ -352,6 +352,7 @@ hubspot:
           'list_labels': { 'type': 'object' },
           'last_synced_at': { 'type': 'string' },
           'contacts_synced_at': { 'type': 'string' },
+          'contacts_import': { 'type': 'object' },
         },
       'required': ['access_token'],
       'additionalProperties': false,
@@ -364,7 +365,7 @@ hubspot:
         'name': 'access_token',
         'validation': 'required',
         'validationName': 'Token',
-        'help': 'HubSpot → Configurações → Integrações → Apps privados → token de acesso. Precisa dos escopos de leitura de negócios, contatos, listas (crm.lists.read) e propriedades.',
+        'help': 'HubSpot → Configurações → Integrações → Apps privados → token de acesso. Escopos: crm.objects.deals.read, crm.objects.contacts.read, crm.objects.owners.read, crm.schemas.deals.read, crm.schemas.contacts.read e, para usar listas, crm.lists.read. Os contatos com telefone são importados automaticamente, sem enviar nada.',
       },
       {
         'label': 'Client secret do app',

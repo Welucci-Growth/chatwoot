@@ -20,7 +20,18 @@ describe Whatsapp::CampaignAudienceService do
   end
 
   it 'reports who is left out and why' do
-    expect(service.summary).to include(labelled: 4, without_phone: 1, opted_out: 1, blocked: 1, recipients: 1, test_mode: false)
+    expect(service.summary).to include(audience: 4, without_phone: 1, opted_out: 1, blocked: 1, recipients: 1, test_mode: false)
+  end
+
+  it 'adds the contacts matching a saved segment, read at send time' do
+    segment = create(:custom_filter, account: account, filter_type: :contact,
+                                     query: { payload: [{ attribute_key: 'phone_number', filter_operator: 'equal_to',
+                                                          values: ['+5511955554444'], query_operator: nil }] })
+    in_segment = account.contacts.find_by(phone_number: '+5511955554444')
+
+    audience = described_class.new(account: account, label_ids: [label.id], segment_ids: [segment.id])
+
+    expect(audience.recipients).to contain_exactly(reachable, in_segment)
   end
 
   it 'reaches nobody without labels' do

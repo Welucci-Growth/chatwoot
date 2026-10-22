@@ -35,6 +35,28 @@ RSpec.describe Contacts::BulkActionService do
       end
     end
 
+    context 'when a filter is sent instead of ids' do
+      let(:filter) do
+        { payload: [{ attribute_key: 'phone_number', filter_operator: 'equal_to', values: ['+5511988887777'], query_operator: nil }] }
+      end
+      let!(:matching) { create(:contact, account: account, phone_number: '+5511988887777') }
+
+      before { create(:contact, account: account, phone_number: '+5511977776666') }
+
+      it 'labels every contact the filter matches' do
+        described_class.new(account: account, user: user, params: { filter: filter, labels: { add: ['vip'] } }).perform
+
+        expect(account.contacts.tagged_with('vip')).to contain_exactly(matching)
+      end
+
+      it 'refuses to delete by filter' do
+        result = described_class.new(account: account, user: user, params: { filter: filter, action_name: 'delete' }).perform
+
+        expect(result).to eq(success: false, error: 'filter_not_allowed_for_delete')
+        expect(account.contacts.count).to eq(2)
+      end
+    end
+
     context 'when labels are removed' do
       let(:params) { { ids: [10, 20], labels: { remove: %w[vip] }, extra: 'ignored' } }
 
