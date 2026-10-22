@@ -5,6 +5,7 @@ set -euo pipefail
 
 VPS="root@187.127.16.158"
 LABEL="$(date +%Y%m%d-%H%M)"
+COMMIT="$(git rev-parse HEAD)"
 
 if [ "$(git branch --show-current)" != "welucci" ]; then
   echo "Erro: faça o deploy a partir da branch welucci." >&2
@@ -17,19 +18,22 @@ fi
 
 git push origin welucci
 
-ssh "$VPS" LABEL="$LABEL" bash -s <<'REMOTE'
+ssh "$VPS" LABEL="$LABEL" COMMIT="$COMMIT" bash -s <<'REMOTE'
 set -euo pipefail
 cd /root/chatwoot
-docker compose exec -T postgres pg_dump -U chatwoot chatwoot > "/root/chatwoot-db-backup-$LABEL.sql"
+# exec reads stdin, which here is this very script: without </dev/null it swallows the rest.
+docker compose exec -T postgres pg_dump -U chatwoot chatwoot </dev/null > "/root/chatwoot-db-backup-$LABEL.sql"
 docker tag chatwoot-welucci:latest "chatwoot-welucci:pre-$LABEL"
 
 cd /root/chatwoot-src
 git checkout welucci
 git pull origin welucci
+[ "$(git rev-parse HEAD)" = "$COMMIT" ] || { echo "Erro: a VPS não está no commit $COMMIT." >&2; exit 1; }
 docker build -f docker/Dockerfile -t chatwoot-welucci:latest .
 
 cd /root/chatwoot
 docker compose up -d --force-recreate
+echo "DEPLOYED $COMMIT"
 REMOTE
 
 sleep 20
