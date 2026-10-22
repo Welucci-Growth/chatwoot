@@ -433,6 +433,10 @@ en:
       name: 'Pipedrive'
       short_description: 'Espelhe negócios e atividades do Pipedrive na aba Tarefas.'
       description: 'Sincroniza o Pipedrive com a aba Tarefas: cada funil escolhido vira um painel com as etapas como colunas, e as atividades do CRM viram cards. As mudanças no Pipedrive chegam em tempo real por webhook.'
+    hubspot:
+      name: 'HubSpot'
+      short_description: 'Espelhe negócios em Tarefas e use listas de contatos como público das campanhas.'
+      description: 'Sincroniza o HubSpot com o Chatwoot: cada funil escolhido vira um painel em Tarefas, e cada lista de contatos escolhida vira uma etiqueta hs-…, com os membros importados como contatos, pronta para ser o público de uma campanha de WhatsApp. A integração só lê o HubSpot e atualiza a cada hora.'
     leadsquared:
       name: 'LeadSquared'
       short_description: 'Sync your contacts and conversations with LeadSquared CRM.'
