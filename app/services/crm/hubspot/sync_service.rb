@@ -18,8 +18,7 @@ class Crm::Hubspot::SyncService
       imported += import_pipeline(pipeline_id)
     end
 
-    @hook.settings['last_synced_at'] = started_at.iso8601
-    @hook.save!
+    @hook.merge_settings!('last_synced_at' => started_at.iso8601)
     imported
   end
 

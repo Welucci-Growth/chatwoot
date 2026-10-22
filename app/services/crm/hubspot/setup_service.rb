@@ -14,6 +14,8 @@ class Crm::Hubspot::SetupService
     map_owners
     map_deal_properties
     @hook.save!
+    # The lists just chosen should not wait for the hourly run to show up as labels.
+    Crm::Hubspot::ContactSyncJob.perform_later(@hook.id)
   end
 
   def teardown

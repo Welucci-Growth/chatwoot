@@ -142,7 +142,9 @@ Rails.application.routes.draw do
               resources :inbox_limits, only: [:create, :update, :destroy]
             end
           end
-          resources :campaigns, only: [:index, :create, :show, :update, :destroy]
+          resources :campaigns, only: [:index, :create, :show, :update, :destroy] do
+            get :audience_preview, on: :collection
+          end
           resources :dashboard_apps, only: [:index, :show, :create, :update, :destroy]
           # Group ids are JIDs ending in ".us", which Rails would read as a format segment,
           # so they travel as parameters instead of path segments.

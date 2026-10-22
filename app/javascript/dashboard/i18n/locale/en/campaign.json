@@ -154,7 +154,8 @@
         "CAMPAIGN_DETAILS": {
           "SENT_FROM": "Sent from",
           "ON": "on"
-        }
+        },
+        "DELIVERY": "{total} sent · {delivered} delivered · {read} read · {failed} failed"
       },
       "CREATE": {
         "TITLE": "Create WhatsApp campaign",
@@ -185,7 +186,15 @@
           "AUDIENCE": {
             "LABEL": "Audience",
             "PLACEHOLDER": "Select the customer labels",
-            "ERROR": "Audience is required"
+            "ERROR": "Audience is required",
+            "PREVIEW": {
+              "LOADING": "Counting who will receive it…",
+              "RECIPIENTS": "{count} contacts will receive this campaign",
+              "NONE": "No contact in this audience can receive the campaign.",
+              "EXCLUDED": "Left out: {withoutPhone} without phone · {optedOut} labelled nao-enviar · {blocked} blocked",
+              "SAMPLE": "For example:",
+              "TEST_MODE": "Test mode is on: only the test numbers configured on the server will receive this campaign."
+            }
           },
           "SCHEDULED_AT": {
             "LABEL": "Scheduled time",

@@ -344,11 +344,14 @@ hubspot:
           'client_secret': { 'type': 'string' },
           'portal_id': { 'type': 'string' },
           'pipeline_ids': { 'type': 'string' },
+          'contact_list_ids': { 'type': 'string' },
           'board_ids': { 'type': 'object' },
           'stage_columns': { 'type': 'object' },
           'owner_map': { 'type': 'object' },
           'deal_fields': { 'type': 'array' },
+          'list_labels': { 'type': 'object' },
           'last_synced_at': { 'type': 'string' },
+          'contacts_synced_at': { 'type': 'string' },
         },
       'required': ['access_token'],
       'additionalProperties': false,
@@ -361,7 +364,7 @@ hubspot:
         'name': 'access_token',
         'validation': 'required',
         'validationName': 'Token',
-        'help': 'HubSpot → Configurações → Integrações → Apps privados → token de acesso. Precisa dos escopos de leitura de negócios, contatos e propriedades.',
+        'help': 'HubSpot → Configurações → Integrações → Apps privados → token de acesso. Precisa dos escopos de leitura de negócios, contatos, listas (crm.lists.read) e propriedades.',
       },
       {
         'label': 'Client secret do app',
@@ -381,8 +384,14 @@ hubspot:
         'name': 'pipeline_ids',
         'help': 'IDs separados por vírgula. Cada funil vira um painel em Tarefas, com as etapas como colunas. Em branco, nada é espelhado.',
       },
+      {
+        'label': 'Listas de contatos',
+        'type': 'text',
+        'name': 'contact_list_ids',
+        'help': 'IDs das listas do HubSpot separados por vírgula (o número na URL da lista). Os membros entram como contatos e cada lista vira uma etiqueta hs-…, usada como público das campanhas. Nada é enviado por isso. Exige o escopo crm.lists.read no app privado.',
+      },
     ]
-  visible_properties: ['portal_id', 'pipeline_ids']
+  visible_properties: ['portal_id', 'pipeline_ids', 'contact_list_ids']
 pipedrive:
   id: pipedrive
   logo: pipedrive.png

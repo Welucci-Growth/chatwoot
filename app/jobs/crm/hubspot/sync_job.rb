@@ -3,6 +3,7 @@ class Crm::Hubspot::SyncJob < ApplicationJob
 
   def perform(hook_id = nil, since: nil)
     hooks(hook_id).each do |hook|
+      Crm::Hubspot::ContactSyncJob.perform_later(hook.id)
       count = Crm::Hubspot::SyncService.new(hook, since: since).perform
       Rails.logger.info("[HUBSPOT] hook #{hook.id}: #{count} negócios espelhados")
     rescue StandardError => e

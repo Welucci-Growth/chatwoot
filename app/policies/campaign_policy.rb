@@ -15,6 +15,10 @@ class CampaignPolicy < ApplicationPolicy
     @account_user.administrator?
   end
 
+  def audience_preview?
+    @account_user.administrator?
+  end
+
   def destroy?
     @account_user.administrator?
   end

@@ -42,6 +42,10 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  deliveryStats: {
+    type: Object,
+    default: null,
+  },
 });
 
 const emit = defineEmits(['edit', 'delete']);
@@ -78,6 +82,21 @@ const campaignStatus = computed(() => {
   }
 
   return t('CAMPAIGN.SMS.CARD.STATUS.SCHEDULED');
+});
+
+// Each recipient's message moves from sent to delivered to read, so the counts add up as it goes.
+const deliverySummary = computed(() => {
+  if (!props.deliveryStats) return '';
+  const { delivered = 0, read = 0, failed = 0 } = props.deliveryStats;
+  const total = Object.values(props.deliveryStats).reduce((a, b) => a + b, 0);
+  if (!total) return '';
+
+  return t('CAMPAIGN.WHATSAPP.CARD.DELIVERY', {
+    total,
+    delivered: delivered + read,
+    read,
+    failed,
+  });
 });
 
 const inboxName = computed(() => props.inbox?.name || '');
@@ -126,6 +145,9 @@ const inboxIcon = computed(() => {
           :scheduled-at="scheduledAt"
         />
       </div>
+      <p v-if="deliverySummary" class="mb-0 text-xs text-n-slate-11">
+        {{ deliverySummary }}
+      </p>
     </div>
     <div class="flex items-center justify-end w-20 gap-2">
       <Button

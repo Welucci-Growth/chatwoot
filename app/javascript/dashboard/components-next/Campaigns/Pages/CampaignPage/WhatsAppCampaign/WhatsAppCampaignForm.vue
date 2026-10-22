@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useVuelidate } from '@vuelidate/core';
 import { required, minLength } from '@vuelidate/validators';
 import { useMapGetter } from 'dashboard/composables/store';
+import CampaignsAPI from 'dashboard/api/campaigns';
 
 import Input from 'dashboard/components-next/input/Input.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -34,6 +35,8 @@ const initialState = {
 
 const state = reactive({ ...initialState });
 const templateParserRef = ref(null);
+const audiencePreview = ref(null);
+const isLoadingPreview = ref(false);
 
 const rules = {
   title: { required, minLength: minLength(1) },
@@ -108,8 +111,14 @@ const hasRequiredTemplateParams = computed(() => {
   return templateParserRef.value?.v$?.$invalid === false || true;
 });
 
+const hasNoRecipients = computed(() => audiencePreview.value?.recipients === 0);
+
 const isSubmitDisabled = computed(
-  () => v$.value.$invalid || !hasRequiredTemplateParams.value
+  () =>
+    v$.value.$invalid ||
+    !hasRequiredTemplateParams.value ||
+    isLoadingPreview.value ||
+    hasNoRecipients.value
 );
 
 const formatToUTCString = localDateTime =>
@@ -160,6 +169,25 @@ const handleSubmit = async () => {
   resetState();
   handleCancel();
 };
+
+// Shows who the chosen labels reach before anything is created, using the same rules as the send.
+watch(
+  () => [...state.selectedAudience],
+  async labelIds => {
+    audiencePreview.value = null;
+    if (!labelIds.length) return;
+
+    isLoadingPreview.value = true;
+    try {
+      const { data } = await CampaignsAPI.audiencePreview(labelIds);
+      if (labelIds.join() === state.selectedAudience.join()) {
+        audiencePreview.value = data;
+      }
+    } finally {
+      isLoadingPreview.value = false;
+    }
+  }
+);
 
 // Reset template selection when inbox changes
 watch(
@@ -233,6 +261,46 @@ watch(
         :message="formErrors.audience"
         class="[&>div>button]:bg-n-alpha-black2"
       />
+      <p v-if="isLoadingPreview" class="mt-1 text-xs text-n-slate-11">
+        {{ t('CAMPAIGN.WHATSAPP.CREATE.FORM.AUDIENCE.PREVIEW.LOADING') }}
+      </p>
+      <div
+        v-else-if="audiencePreview"
+        class="flex flex-col gap-1 p-3 mt-1 text-xs rounded-lg bg-n-alpha-2 text-n-slate-11"
+      >
+        <p v-if="audiencePreview.test_mode" class="font-medium text-n-amber-11">
+          {{ t('CAMPAIGN.WHATSAPP.CREATE.FORM.AUDIENCE.PREVIEW.TEST_MODE') }}
+        </p>
+        <p
+          class="font-medium"
+          :class="hasNoRecipients ? 'text-n-ruby-11' : 'text-n-slate-12'"
+        >
+          {{
+            hasNoRecipients
+              ? t('CAMPAIGN.WHATSAPP.CREATE.FORM.AUDIENCE.PREVIEW.NONE')
+              : t('CAMPAIGN.WHATSAPP.CREATE.FORM.AUDIENCE.PREVIEW.RECIPIENTS', {
+                  count: audiencePreview.recipients,
+                })
+          }}
+        </p>
+        <p>
+          {{
+            t('CAMPAIGN.WHATSAPP.CREATE.FORM.AUDIENCE.PREVIEW.EXCLUDED', {
+              withoutPhone: audiencePreview.without_phone,
+              optedOut: audiencePreview.opted_out,
+              blocked: audiencePreview.blocked,
+            })
+          }}
+        </p>
+        <p v-if="audiencePreview.sample.length">
+          {{ t('CAMPAIGN.WHATSAPP.CREATE.FORM.AUDIENCE.PREVIEW.SAMPLE') }}
+          {{
+            audiencePreview.sample
+              .map(contact => `${contact.name} (${contact.phone_number})`)
+              .join(', ')
+          }}
+        </p>
+      </div>
     </div>
 
     <Input

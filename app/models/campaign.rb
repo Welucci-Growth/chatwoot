@@ -55,6 +55,14 @@ class Campaign < ApplicationRecord
   after_commit :set_display_id, unless: :display_id?
   after_destroy_commit :invalidate_filtered_unread_count_filters
 
+  # Every recipient is an outgoing message carrying the campaign id, so its delivery status is
+  # the campaign's report.
+  def delivery_stats
+    Message.where(inbox_id: inbox_id)
+           .where("(messages.additional_attributes -> 'campaign_id') @> ?::jsonb", id.to_s)
+           .group(:status).count
+  end
+
   def trigger!
     return unless one_off?
     return unless feature_enabled?

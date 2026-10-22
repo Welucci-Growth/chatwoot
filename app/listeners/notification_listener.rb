@@ -16,6 +16,8 @@ class NotificationListener < BaseListener
   def conversation_created(event)
     conversation, account = extract_conversation_and_account(event)
     return if conversation.pending?
+    # Campaigns open their conversations snoozed: there is nothing to act on until the reply.
+    return if conversation.snoozed?
 
     conversation.inbox.members.each do |agent|
       NotificationBuilder.new(

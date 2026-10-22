@@ -1,5 +1,6 @@
 class Crm::Hubspot::ProcessorService
   SOURCE = 'hubspot'.freeze
+  PHONE_PROPERTIES = %w[hs_whatsapp_phone_number mobilephone phone].freeze
 
   def initialize(hook, contact_index: nil)
     @hook = hook
@@ -41,9 +42,14 @@ class Crm::Hubspot::ProcessorService
   def match_contact(person)
     props = person['properties'] || {}
     email = props['email'].to_s.downcase.presence
-    phone = props['phone'].presence
 
-    (email && @account.contacts.from_email(email)) || (phone && Crm::ContactMatcher.by_phone(@account, phone))
+    (email && @account.contacts.from_email(email)) ||
+      phone_values(props).lazy.filter_map { |phone| Crm::ContactMatcher.by_phone(@account, phone) }.first
+  end
+
+  # Most likely to reach the person on WhatsApp first.
+  def phone_values(props)
+    PHONE_PROPERTIES.filter_map { |key| props[key].presence }
   end
 
   private

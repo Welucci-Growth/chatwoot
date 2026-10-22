@@ -1,5 +1,5 @@
 class Api::V1::Accounts::CampaignsController < Api::V1::Accounts::BaseController
-  before_action :campaign, except: [:index, :create]
+  before_action :campaign, except: [:index, :create, :audience_preview]
   before_action :check_authorization
 
   def index
@@ -14,6 +14,11 @@ class Api::V1::Accounts::CampaignsController < Api::V1::Accounts::BaseController
 
   def update
     @campaign.update!(campaign_params)
+  end
+
+  # Who a WhatsApp campaign on these labels would reach, without sending anything.
+  def audience_preview
+    render json: Whatsapp::CampaignAudienceService.new(account: Current.account, label_ids: Array(params[:label_ids])).summary
   end
 
   def destroy

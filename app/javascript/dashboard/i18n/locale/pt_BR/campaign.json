@@ -154,7 +154,8 @@
         "CAMPAIGN_DETAILS": {
           "SENT_FROM": "Enviado de",
           "ON": "ativado"
-        }
+        },
+        "DELIVERY": "{total} enviadas · {delivered} entregues · {read} lidas · {failed} falharam"
       },
       "CREATE": {
         "TITLE": "Criar campanha do WhatsApp",
@@ -185,7 +186,15 @@
           "AUDIENCE": {
             "LABEL": "Público",
             "PLACEHOLDER": "Selecionar etiquetas dos clientes",
-            "ERROR": "Público é necessário"
+            "ERROR": "Público é necessário",
+            "PREVIEW": {
+              "LOADING": "Contando quem vai receber…",
+              "RECIPIENTS": "{count} contatos vão receber esta campanha",
+              "NONE": "Nenhum contato deste público pode receber a campanha.",
+              "EXCLUDED": "Ficam de fora: {withoutPhone} sem telefone · {optedOut} com a etiqueta nao-enviar · {blocked} bloqueados",
+              "SAMPLE": "Por exemplo:",
+              "TEST_MODE": "Modo de teste ativo: só os números de teste configurados no servidor vão receber esta campanha."
+            }
           },
           "SCHEDULED_AT": {
             "LABEL": "Horário agendado",

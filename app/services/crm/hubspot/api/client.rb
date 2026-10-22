@@ -4,6 +4,9 @@ class Crm::Hubspot::Api::Client
 
   PAGE_SIZE = 100
   BATCH_SIZE = 100
+  MEMBERSHIP_PAGE_SIZE = 250
+  # HubSpot's search endpoints stop paging at ten thousand results and answer 400 past it.
+  SEARCH_RESULT_CAP = 10_000
   # Well under HubSpot's 19 requests per second, leaving room for the rest of the app.
   MAX_PER_SECOND = 8
   DEAL_PROPERTIES = %w[
@@ -12,7 +15,7 @@ class Crm::Hubspot::Api::Client
     hs_is_closed_won closed_lost_reason
   ].freeze
 
-  CONTACT_PROPERTIES = %w[email phone firstname lastname].freeze
+  CONTACT_PROPERTIES = %w[email phone mobilephone hs_whatsapp_phone_number firstname lastname].freeze
   # HubSpot's own "Primary" association between a lead and the contact behind it.
   LEAD_CONTACT_PRIMARY = 578
 
@@ -39,13 +42,30 @@ class Crm::Hubspot::Api::Client
   # modification time, which keeps each sync proportional to the changes, not the CRM size.
   # Custom properties are only returned when named explicitly, so the caller passes the
   # keys it cares about; without them the cards would carry no CRM fields at all.
+  # A window larger than the search cap is read in slices: results come oldest change first,
+  # and each slice restarts from the last modification time the previous one reached.
   def deals_changed_since(pipeline_id:, since:, extra_properties: [])
-    search('/crm/v3/objects/deals/search',
-           properties: (DEAL_PROPERTIES + Array(extra_properties)).uniq,
-           filters: [
-             { propertyName: 'pipeline', operator: 'EQ', value: pipeline_id },
-             { propertyName: 'hs_lastmodifieddate', operator: 'GTE', value: (since.to_f * 1000).round }
-           ])
+    from = (since.to_f * 1000).round
+    deals = {}
+
+    loop do
+      page = search('/crm/v3/objects/deals/search',
+                    properties: (DEAL_PROPERTIES + Array(extra_properties)).uniq,
+                    sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'ASCENDING' }],
+                    filters: [
+                      { propertyName: 'pipeline', operator: 'EQ', value: pipeline_id },
+                      { propertyName: 'hs_lastmodifieddate', operator: 'GTE', value: from }
+                    ])
+      page.each { |deal| deals[deal['id'].to_s] = deal }
+      break if page.size < SEARCH_RESULT_CAP
+
+      last = (Time.zone.parse(page.last.dig('properties', 'hs_lastmodifieddate').to_s).to_f * 1000).round
+      break if last <= from
+
+      from = last
+    end
+
+    deals.values
   end
 
   # Asking per deal would cost one request each — over thirteen thousand for a single
@@ -110,6 +130,28 @@ class Crm::Hubspot::Api::Client
     request(:post, '/crm/v3/objects/contacts', body: { properties: properties }.to_json)
   end
 
+  def contact_list(list_id)
+    request(:get, "/crm/v3/lists/#{list_id}")['list']
+  end
+
+  # Membership is read from the list itself rather than through search, so it has no result
+  # cap and reflects HubSpot's own segment, however it is defined there.
+  def list_member_ids(list_id)
+    ids = []
+    after = nil
+
+    loop do
+      query = { limit: MEMBERSHIP_PAGE_SIZE }
+      query[:after] = after if after.present?
+      page = request(:get, "/crm/v3/lists/#{list_id}/memberships", query: query)
+      ids.concat(Array(page['results']).map { |member| (member.is_a?(Hash) ? member['recordId'] : member).to_s })
+      after = page.dig('paging', 'next', 'after')
+      break if after.blank?
+    end
+
+    ids
+  end
+
   def find_contact(property, value)
     search('/crm/v3/objects/contacts/search',
            properties: CONTACT_PROPERTIES,
@@ -129,7 +171,7 @@ class Crm::Hubspot::Api::Client
     true
   end
 
-  def search(path, filters:, properties: DEAL_PROPERTIES)
+  def search(path, filters:, properties: DEAL_PROPERTIES, sorts: nil)
     results = []
     after = nil
 
@@ -139,12 +181,13 @@ class Crm::Hubspot::Api::Client
         properties: properties,
         limit: PAGE_SIZE
       }
+      body[:sorts] = sorts if sorts.present?
       body[:after] = after if after.present?
 
       page = request(:post, path, body: body.to_json)
       results.concat(page['results'] || [])
       after = page.dig('paging', 'next', 'after')
-      break if after.blank?
+      break if after.blank? || results.size >= SEARCH_RESULT_CAP
     end
 
     results

@@ -18,7 +18,7 @@ class Integrations::Hook < ApplicationRecord
   include Reauthorizable
 
   PIPEDRIVE_CONFIG_KEYS = %w[api_token company_domain pipeline_ids sync_activities].freeze
-  HUBSPOT_CONFIG_KEYS = %w[access_token portal_id pipeline_ids].freeze
+  HUBSPOT_CONFIG_KEYS = %w[access_token portal_id pipeline_ids contact_list_ids].freeze
   CRM_CONFIG_KEYS = { 'pipedrive' => PIPEDRIVE_CONFIG_KEYS, 'hubspot' => HUBSPOT_CONFIG_KEYS }.freeze
 
   attr_readonly :app_id, :account_id, :inbox_id, :hook_type
@@ -84,6 +84,12 @@ class Integrations::Hook < ApplicationRecord
     # OpenAI integration migrated to Captain::EditorService
     # Other integrations (slack, dialogflow, etc.) handled via HookJob
     { error: 'No processor found' }
+  end
+
+  # Background syncs each own a few keys of the settings. Merging under a row lock keeps one
+  # sync from writing back a stale copy of the keys another one just saved.
+  def merge_settings!(values)
+    with_lock { update!(settings: settings.merge(values)) }
   end
 
   def feature_allowed?
