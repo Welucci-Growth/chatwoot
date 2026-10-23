@@ -6,6 +6,8 @@ class Crm::Hubspot::Api::Client # rubocop:disable Metrics/ClassLength
   PAGE_SIZE = 100
   BATCH_SIZE = 100
   MEMBERSHIP_PAGE_SIZE = 250
+  SEGMENT_PAGE_SIZE = 500
+  CONTACT_OBJECT_TYPE = '0-1'.freeze
   # HubSpot's search endpoints stop paging at ten thousand results and answer 400 past it.
   SEARCH_RESULT_CAP = 10_000
   # Well under HubSpot's 19 requests per second, leaving room for the rest of the app.
@@ -138,6 +140,23 @@ class Crm::Hubspot::Api::Client # rubocop:disable Metrics/ClassLength
 
   def create_contact(properties)
     request(:post, '/crm/v3/objects/contacts', body: { properties: properties }.to_json)
+  end
+
+  # Every contact segment (HubSpot's current name for lists), largest first as in the CRM.
+  def contact_segments
+    segments = []
+    offset = 0
+
+    loop do
+      page = request(:post, '/crm/v3/lists/search',
+                     body: { query: '', count: SEGMENT_PAGE_SIZE, offset: offset, additionalProperties: ['hs_list_size'] }.to_json)
+      segments.concat(Array(page['lists']).select { |list| list['objectTypeId'] == CONTACT_OBJECT_TYPE })
+      break unless page['hasMore']
+
+      offset = page['offset']
+    end
+
+    segments
   end
 
   def contact_list(list_id)

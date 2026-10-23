@@ -63,5 +63,17 @@
     "SIDEBAR_DESCRIPTION": {
       "DIALOGFLOW": "Dialogflow is a natural language processing platform for building conversational interfaces. Integrating it with {installationName} lets bots handle queries first and transfer them to agents when needed. It helps qualify leads and reduce agent workload by answering FAQs. To add Dialogflow, create a Service Account in Google Console and share the credentials. Refer to the docs for details"
     }
+  },
+  "HUBSPOT_SEGMENTS": {
+    "TITLE": "HubSpot segments",
+    "DESCRIPTION": "Tick the HubSpot segments to bring in. Each one becomes a label kept in sync with HubSpot, usable in the contact filter (Labels) and as a campaign audience. Nothing is sent to anyone.",
+    "SEARCH_PLACEHOLDER": "Search segments",
+    "EMPTY": "No segment found.",
+    "SIZE": "{count} contacts",
+    "SELECTED": "{count} segments selected",
+    "SAVE": "Save segments",
+    "SAVE_SUCCESS": "Segments saved. They show up as labels in a few minutes.",
+    "SAVE_ERROR": "Could not save the segments. Please try again.",
+    "LOAD_ERROR": "Could not read the HubSpot segments. Check that the private app has the crm.lists.read scope."
   }
 }

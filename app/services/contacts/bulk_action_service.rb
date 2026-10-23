@@ -42,9 +42,11 @@ class Contacts::BulkActionService
   end
 
   # "Select all" on a filtered list sends the filter instead of ids, so a label reaches every
-  # contact that matches it and not only the page on screen.
+  # contact that matches it and not only the page on screen, minus anyone unticked after.
   def ids
-    return Contacts::FilterService.new(@account, @user, filter).perform[:contacts].pluck(:id) if filter.present?
+    if filter.present?
+      return Contacts::FilterService.new(@account, @user, filter).perform[:contacts].pluck(:id) - Array(@params[:exclude_ids]).map(&:to_i)
+    end
 
     Array(@params[:ids]).compact
   end

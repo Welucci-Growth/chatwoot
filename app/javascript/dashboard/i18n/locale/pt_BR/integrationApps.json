@@ -63,5 +63,17 @@
     "SIDEBAR_DESCRIPTION": {
       "DIALOGFLOW": "Dialogflow é uma plataforma de processamento de linguagem natural para a construção de interfaces conversais. Integrá-lo com {installationName} permite que os bots lidem primeiro com consultas e transfiram para os agentes quando necessário. Ele ajuda a qualificar leads e reduzir a carga de trabalho dos agentes respondendo às FAQ. Para adicionar um fluxo de diálogo (Dialogflow), crie uma Conta de Serviço no Google Console e compartilhe as credenciais. Consulte sua documentação para obter detalhes"
     }
+  },
+  "HUBSPOT_SEGMENTS": {
+    "TITLE": "Segmentos do HubSpot",
+    "DESCRIPTION": "Marque os segmentos do HubSpot que devem vir para o Chatwoot. Cada um vira uma etiqueta sincronizada com o HubSpot, que pode ser usada no filtro de contatos (Etiquetas) e como público de campanha. Nada é enviado para ninguém.",
+    "SEARCH_PLACEHOLDER": "Buscar segmentos",
+    "EMPTY": "Nenhum segmento encontrado.",
+    "SIZE": "{count} contatos",
+    "SELECTED": "{count} segmentos selecionados",
+    "SAVE": "Salvar segmentos",
+    "SAVE_SUCCESS": "Segmentos salvos. Eles aparecem como etiquetas em alguns minutos.",
+    "SAVE_ERROR": "Não foi possível salvar os segmentos. Tente novamente.",
+    "LOAD_ERROR": "Não foi possível ler os segmentos do HubSpot. Confira se o app privado tem o escopo crm.lists.read."
   }
 }

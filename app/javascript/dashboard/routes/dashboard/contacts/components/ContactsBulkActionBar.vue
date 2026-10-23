@@ -32,6 +32,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  excludedCount: {
+    type: Number,
+    default: 0,
+  },
 });
 
 const emit = defineEmits([
@@ -61,7 +65,7 @@ const selectAllLabel = computed(() => {
 const selectedCountLabel = computed(() =>
   props.allMatchingSelected
     ? t('CONTACTS_BULK_ACTIONS.ALL_MATCHING_SELECTED', {
-        count: props.totalCount,
+        count: props.totalCount - props.excludedCount,
       })
     : t('CONTACTS_BULK_ACTIONS.SELECTED_COUNT', {
         count: selectedCount.value,

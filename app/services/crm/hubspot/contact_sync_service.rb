@@ -60,10 +60,13 @@ class Crm::Hubspot::ContactSyncService
     labels.value?(title) ? "#{title}-#{list_id}" : title
   end
 
+  # Kept off the sidebar: a portal can have dozens of segments, and they are reached through the
+  # contact filter and the campaign audience instead.
   def ensure_label(title, list_id)
     @account.labels.find_or_create_by!(title: title) do |label|
-      label.description = "Espelha a lista #{list_id} do HubSpot. Atualizada automaticamente."
+      label.description = "Segmento #{list_id} do HubSpot, atualizado automaticamente."
       label.color = LABEL_COLOR
+      label.show_on_sidebar = false
     end
   end
 

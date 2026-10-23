@@ -49,6 +49,14 @@ RSpec.describe Contacts::BulkActionService do
         expect(account.contacts.tagged_with('vip')).to contain_exactly(matching)
       end
 
+      it 'leaves out the contacts unticked after selecting every match' do
+        params = { filter: filter, exclude_ids: [matching.id], labels: { add: ['vip'] } }
+
+        described_class.new(account: account, user: user, params: params).perform
+
+        expect(account.contacts.tagged_with('vip')).to be_empty
+      end
+
       it 'refuses to delete by filter' do
         result = described_class.new(account: account, user: user, params: { filter: filter, action_name: 'delete' }).perform
 

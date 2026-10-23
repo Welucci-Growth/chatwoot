@@ -63,9 +63,9 @@ GlobalConfig.clear_cache
 
 **Escolher o público em Contatos:**
 - Filtre pelos atributos do HubSpot e salve como **Segmento**, que é lido na hora do envio e inclui contatos importados depois.
-- Ou marque contatos e aplique uma etiqueta. Com um filtro ou segmento ativo, a barra oferece **"Selecionar todos os N contatos do filtro"**, que aplica a etiqueta em todos, e não só na página. Excluir por filtro é bloqueado.
+- Ou marque contatos específicos (a seleção vale entre páginas) e aplique uma etiqueta. Com um filtro ou segmento ativo, a barra oferece **"Selecionar todos os N contatos do filtro"**; depois disso, desmarcar alguém o deixa de fora. Excluir por filtro é bloqueado.
 
-**Listas do HubSpot (opcional):** IDs em **Listas de contatos** viram etiquetas `hs-<nome-da-lista>` mantidas em sincronia (exige `crm.lists.read`).
+**Segmentos do HubSpot:** em Configurações → Integrações → HubSpot, o painel **Segmentos do HubSpot** lista os segmentos de contato do portal; os marcados viram etiquetas `hs-<nome>` (fora do menu lateral) mantidas em sincronia a cada hora. Aparecem no filtro de Contatos (Etiquetas) e no público da campanha. Exige o escopo `crm.lists.read`.
 
 **Envio (Campanhas → WhatsApp, só inbox WhatsApp Cloud):**
 - O público são as etiquetas e segmentos escolhidos. Ficam de fora automaticamente: contatos sem telefone, bloqueados e com a etiqueta `nao-enviar` (opt-out).

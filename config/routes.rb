@@ -413,6 +413,12 @@ Rails.application.routes.draw do
                 get :list_all_channels
               end
             end
+            resource :hubspot, controller: 'hubspot', only: [] do
+              collection do
+                get :segments
+                patch :segments, action: :update_segments
+              end
+            end
             resource :dyte, controller: 'dyte', only: [] do
               collection do
                 post :create_a_meeting

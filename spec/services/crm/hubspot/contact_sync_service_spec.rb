@@ -36,7 +36,7 @@ describe Crm::Hubspot::ContactSyncService do
     ana = account.contacts.from_email('ana@example.com')
     expect(ana).to have_attributes(name: 'Ana Souza', phone_number: '+5511988887777', label_list: ['hs-clientes-vip'])
     expect(account.contacts.from_email('bruno@example.com').phone_number).to eq('+552133334444')
-    expect(account.labels.pluck(:title)).to include('hs-clientes-vip')
+    expect(account.labels.find_by(title: 'hs-clientes-vip').show_on_sidebar).to be(false)
     expect(hook.reload.settings['list_labels']).to eq('42' => 'hs-clientes-vip')
   end
 

@@ -152,21 +152,32 @@ const activeFilterQuery = computed(() => {
     : null;
 });
 const selectAllMatching = ref(false);
+// Contacts unticked after selecting every match: the bulk action leaves them out.
+const excludedContactIds = ref([]);
 
-// Selecting every match only holds while the whole page stays ticked.
-watch(selectedContactIds, ids => {
-  if (visibleContactIds.value.some(id => !ids.includes(id))) {
-    selectAllMatching.value = false;
-  }
-});
+// While every match is selected, the ticks on screen follow the exclusions instead.
+const shownSelectedIds = computed(() =>
+  selectAllMatching.value
+    ? visibleContactIds.value.filter(
+        id => !excludedContactIds.value.includes(id)
+      )
+    : selectedContactIds.value
+);
+
+const selectEveryMatch = () => {
+  selectAllMatching.value = true;
+  excludedContactIds.value = [];
+};
 
 const bulkTarget = () =>
   selectAllMatching.value
-    ? { filter: activeFilterQuery.value }
+    ? { filter: activeFilterQuery.value, exclude_ids: excludedContactIds.value }
     : { ids: selectedContactIds.value };
 
 const clearSelection = () => {
   selectedContactIds.value = [];
+  selectAllMatching.value = false;
+  excludedContactIds.value = [];
 };
 
 const openBulkDeleteDialog = () => {
@@ -175,6 +186,16 @@ const openBulkDeleteDialog = () => {
 };
 
 const toggleSelectAll = shouldSelect => {
+  if (selectAllMatching.value) {
+    if (!shouldSelect) {
+      clearSelection();
+      return;
+    }
+    excludedContactIds.value = excludedContactIds.value.filter(
+      id => !visibleContactIds.value.includes(id)
+    );
+    return;
+  }
   const currentSelection = new Set(selectedContactIds.value);
   if (shouldSelect) {
     visibleContactIds.value.forEach(id => currentSelection.add(id));
@@ -185,6 +206,14 @@ const toggleSelectAll = shouldSelect => {
 };
 
 const toggleContactSelection = ({ id, value }) => {
+  if (selectAllMatching.value) {
+    const isExcluded = excludedContactIds.value.includes(id);
+    const shouldSelect = value ?? isExcluded;
+    excludedContactIds.value = shouldSelect
+      ? excludedContactIds.value.filter(contactId => contactId !== id)
+      : [...new Set([...excludedContactIds.value, id])];
+    return;
+  }
   const isAlreadySelected = selectedContactIds.value.includes(id);
   const shouldSelect = value ?? !isAlreadySelected;
 
@@ -555,12 +584,13 @@ onMounted(async () => {
         <ContactsBulkActionBar
           v-if="hasSelection"
           :visible-contact-ids="visibleContactIds"
-          :selected-contact-ids="selectedContactIds"
+          :selected-contact-ids="shownSelectedIds"
           :is-loading="isBulkActionLoading"
           :total-count="totalItems"
+          :excluded-count="excludedContactIds.length"
           :can-select-all-matching="!!activeFilterQuery"
           :all-matching-selected="selectAllMatching"
-          @select-all-matching="selectAllMatching = true"
+          @select-all-matching="selectEveryMatch"
           @toggle-all="toggleSelectAll"
           @clear-selection="clearSelection"
           @assign-labels="assignLabels"
@@ -588,7 +618,7 @@ onMounted(async () => {
         <div v-else class="flex flex-col gap-4 pt-4 pb-6">
           <ContactsList
             :contacts="contacts"
-            :selected-contact-ids="selectedContactIds"
+            :selected-contact-ids="shownSelectedIds"
             @toggle-contact="toggleContactSelection"
           />
           <Dialog

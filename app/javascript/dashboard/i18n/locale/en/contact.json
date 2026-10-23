@@ -587,7 +587,7 @@
   },
   "CONTACTS_BULK_ACTIONS": {
     "SELECT_ALL_MATCHING": "Select all {count} matching contacts",
-    "ALL_MATCHING_SELECTED": "All {count} matching contacts selected",
+    "ALL_MATCHING_SELECTED": "{count} matching contacts selected",
     "ASSIGN_LABELS": "Assign Labels",
     "REMOVE_LABELS": "Remove Labels",
     "ASSIGN_LABELS_SUCCESS": "Labels assigned successfully.",

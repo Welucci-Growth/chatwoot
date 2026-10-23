@@ -6,6 +6,7 @@ import { useIntegrationHook } from 'dashboard/composables/useIntegrationHook';
 import NewHook from './NewHook.vue';
 import SingleIntegrationHooks from './SingleIntegrationHooks.vue';
 import MultipleIntegrationHooks from './MultipleIntegrationHooks.vue';
+import HubspotSegments from './HubspotSegments.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 
@@ -14,6 +15,7 @@ export default {
     NewHook,
     SingleIntegrationHooks,
     MultipleIntegrationHooks,
+    HubspotSegments,
     SettingsLayout,
     BaseSettingsHeader,
   },
@@ -141,6 +143,9 @@ export default {
             :integration-id="integrationId"
             @add="openAddHookModal"
             @delete="openDeletePopup"
+          />
+          <HubspotSegments
+            v-if="integrationId === 'hubspot' && integration.hooks.length"
           />
         </div>
       </div>
