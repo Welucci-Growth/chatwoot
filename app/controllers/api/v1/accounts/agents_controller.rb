@@ -18,6 +18,7 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
     )
 
     @agent = builder.perform
+    @agent.current_account_user.update!(access_profile: new_agent_params[:access_profile].presence)
   rescue AgentBuilder::LimitExceededError => e
     render_payment_required(e.message)
   end
@@ -25,6 +26,8 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
   def update
     @agent.update!(agent_params.slice(:name).compact)
     @agent.current_account_user.update!(agent_params.slice(*account_user_attributes).compact)
+    # Blank means the full dashboard, so it is applied rather than compacted away.
+    @agent.current_account_user.update!(access_profile: agent_params[:access_profile].presence) if agent_params.key?(:access_profile)
   end
 
   def destroy
@@ -60,7 +63,7 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
   end
 
   def allowed_agent_params
-    [:name, :email, :role, :availability, :auto_offline]
+    [:name, :email, :role, :availability, :auto_offline, :access_profile]
   end
 
   def agent_params
@@ -68,7 +71,7 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
   end
 
   def new_agent_params
-    params.require(:agent).permit(:email, :name, :role, :availability, :auto_offline)
+    params.require(:agent).permit(:email, :name, :role, :availability, :auto_offline, :access_profile)
   end
 
   def agents

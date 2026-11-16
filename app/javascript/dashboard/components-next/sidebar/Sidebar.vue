@@ -359,7 +359,15 @@ const newReportRoutes = () => [
 
 const reportRoutes = computed(() => newReportRoutes());
 
-const menuItems = computed(() => {
+// The monitoring profile follows groups and its own conversations only; the router keeps the
+// rest of the dashboard out of reach as well.
+const MONITORING_MENU = {
+  Groups: ['AllGroups', 'ActiveGroups', 'IdleGroups'],
+  Conversation: ['All', 'Channels'],
+};
+const accessProfile = useMapGetter('getCurrentAccessProfile');
+
+const fullMenuItems = computed(() => {
   return [
     {
       name: 'Inbox',
@@ -908,6 +916,19 @@ const menuItems = computed(() => {
       ],
     },
   ];
+});
+
+const menuItems = computed(() => {
+  if (accessProfile.value !== 'monitoring') return fullMenuItems.value;
+
+  return fullMenuItems.value
+    .filter(item => MONITORING_MENU[item.name])
+    .map(item => ({
+      ...item,
+      children: item.children.filter(child =>
+        MONITORING_MENU[item.name].includes(child.name)
+      ),
+    }));
 });
 </script>
 

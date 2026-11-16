@@ -14,6 +14,9 @@ class Webhooks::EvolutionController < ActionController::API
     # Instances without a mirror inbox are expected — the global webhook receives all of them.
     # Answering ok keeps Evolution from retrying and flooding its logs.
     return head :ok if channel.blank?
+    # A newly connected number stays paused while its history is imported, so older messages
+    # are created before live ones and the thread pages in order.
+    return head :ok if channel.provider_config['mirror_paused'].present?
     return head :unauthorized unless valid_token?(channel)
 
     Webhooks::EvolutionEventsJob.perform_later(channel.id, params.to_unsafe_hash)

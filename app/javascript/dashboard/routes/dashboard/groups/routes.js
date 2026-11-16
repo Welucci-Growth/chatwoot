@@ -9,8 +9,9 @@ const view = (path, name, filter) => ({
   name,
   component: GroupsView,
   props: () => ({ filter }),
+  // Agents follow the groups of the numbers they work with; the API scopes what they see.
   meta: {
-    permissions: ['administrator'],
+    permissions: ['administrator', 'agent'],
   },
 });
 

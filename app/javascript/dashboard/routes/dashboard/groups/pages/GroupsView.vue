@@ -10,6 +10,7 @@ import ConversationBox from 'dashboard/components/widgets/conversation/Conversat
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { useGroupTeam } from 'dashboard/composables/useGroupTeam';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 
 const props = defineProps({
   filter: {
@@ -20,6 +21,8 @@ const props = defineProps({
 
 const { t } = useI18n();
 const store = useStore();
+// Agents only follow groups; refreshing the directory and changing a group stay with admins.
+const { isAdmin } = useAdmin();
 
 const groups = ref([]);
 const isLoading = ref(false);
@@ -136,6 +139,7 @@ const openConversation = async group => {
 const openGroup = async group => {
   selected.value = group;
   openConversation(group);
+  if (!isAdmin.value) return;
   details.value = null;
   draftSubject.value = group.subject || '';
   draftDescription.value = group.description || '';
@@ -254,6 +258,7 @@ onUnmounted(() => {
           </p>
         </div>
         <NextButton
+          v-if="isAdmin"
           sm
           faded
           slate
@@ -394,6 +399,7 @@ onUnmounted(() => {
         </span>
         <div class="flex items-center gap-1">
           <NextButton
+            v-if="isAdmin"
             xs
             ghost
             slate

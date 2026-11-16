@@ -38,6 +38,10 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  accessProfile: {
+    type: String,
+    default: '',
+  },
 });
 
 const emit = defineEmits(['close']);
@@ -49,6 +53,7 @@ const { t } = useI18n();
 
 const agentName = ref(props.name);
 const agentAvailability = ref(props.availability);
+const accessProfile = ref(props.accessProfile || '');
 const selectedRoleId = ref(props.customRoleId || props.type);
 const agentCredentials = ref({ email: props.email });
 
@@ -94,6 +99,12 @@ const roles = computed(() => {
   return [...defaultRoles, ...customRoles];
 });
 
+// Blank is the full dashboard; monitoring narrows it to groups and the agent's conversations.
+const accessProfiles = computed(() => [
+  { value: '', label: t('AGENT_MGMT.ACCESS_PROFILE.FULL') },
+  { value: 'monitoring', label: t('AGENT_MGMT.ACCESS_PROFILE.MONITORING') },
+]);
+
 const selectedRole = computed(() =>
   roles.value.find(
     role =>
@@ -126,6 +137,7 @@ const editAgent = async () => {
       id: props.id,
       name: agentName.value,
       availability: agentAvailability.value,
+      access_profile: accessProfile.value,
     };
 
     if (selectedRole.value.name.startsWith('custom_')) {
@@ -179,6 +191,24 @@ const resetPassword = async () => {
           </select>
           <span v-if="v$.selectedRoleId.$error" class="message">
             {{ $t('AGENT_MGMT.EDIT.FORM.AGENT_TYPE.ERROR') }}
+          </span>
+        </label>
+      </div>
+
+      <div class="w-full">
+        <label>
+          {{ $t('AGENT_MGMT.ACCESS_PROFILE.LABEL') }}
+          <select v-model="accessProfile">
+            <option
+              v-for="profile in accessProfiles"
+              :key="profile.value"
+              :value="profile.value"
+            >
+              {{ profile.label }}
+            </option>
+          </select>
+          <span class="text-xs text-n-slate-11">
+            {{ $t('AGENT_MGMT.ACCESS_PROFILE.HELP') }}
           </span>
         </label>
       </div>

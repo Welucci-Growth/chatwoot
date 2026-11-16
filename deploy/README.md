@@ -80,3 +80,19 @@ CAMPAIGN_TEST_PHONE_NUMBERS=+5511999990000,+5511988880000
 cd /root/chatwoot && docker compose up -d --force-recreate rails sidekiq
 ```
 Os contatos de teste precisam ter uma das etiquetas do público. Para liberar os envios reais, apague a linha e recrie os containers do mesmo jeito.
+
+## Monitoramento de grupos (ex.: financeiro)
+
+**Conectar um número do Evolution como espelho (somente leitura):**
+```bash
+cd /root/chatwoot && docker compose exec -T rails bundle exec rake "evolution:connect_mirror[contas_a_pagar,Contas a Pagar,30]" </dev/null
+```
+A inbox nasce com o espelho pausado e sem distribuição automática. O `HistoryImportJob` importa os últimos N dias (grupos e conversas, com anexos e a data original), liga o espelho ao vivo e faz uma repassada para os minutos da importação. A importação não dispara eventos: nada chega ao n8n, automações ou notificações. Rodar de novo só preenche lacunas.
+
+**Pré-configurar quem vai usar (antes do primeiro acesso pelo Hub):**
+1. Configurações → Agentes → **Adicionar agente**: nome, e-mail @welucci.com, função **Agente** e **Perfil de acesso: Monitoramento de grupos**.
+2. Configurações → Caixas de entrada → a inbox do número → **Colaboradores**: adicionar a pessoa.
+3. Opcional: Configurações → Times → adicionar ao time.
+
+No primeiro acesso pelo Hub a conta é adotada com tudo isso. O perfil de monitoramento mostra só **Grupos** (dos números das inboxes da pessoa) e **Conversas** dessas inboxes; o resto do painel fica fora do menu e das rotas. Ações que mudam um grupo (nome, convite, admins) e o botão de atualizar diretório continuam só para administradores.
+

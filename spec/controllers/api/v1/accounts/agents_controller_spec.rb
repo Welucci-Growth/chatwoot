@@ -196,6 +196,38 @@ RSpec.describe 'Agents API', type: :request do
     end
   end
 
+  describe 'access profile' do
+    it 'sets up a monitoring agent ahead of their first sign in' do
+      post "/api/v1/accounts/#{account.id}/agents",
+           params: { name: 'Financeiro', email: 'financeiro@welucci.com', role: :agent, access_profile: 'monitoring' },
+           headers: admin.create_new_auth_token,
+           as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body['access_profile']).to eq('monitoring')
+    end
+
+    it 'switches an agent back to the full dashboard' do
+      agent.account_users.first.update!(access_profile: 'monitoring')
+
+      put "/api/v1/accounts/#{account.id}/agents/#{agent.id}",
+          params: { access_profile: '' },
+          headers: admin.create_new_auth_token,
+          as: :json
+
+      expect(agent.account_users.first.reload.access_profile).to be_nil
+    end
+
+    it 'rejects an unknown profile' do
+      put "/api/v1/accounts/#{account.id}/agents/#{agent.id}",
+          params: { access_profile: 'superuser' },
+          headers: admin.create_new_auth_token,
+          as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+  end
+
   describe 'POST /api/v1/accounts/{account.id}/agents/bulk_create' do
     let(:emails) { ['test1@example.com', 'test2@example.com', 'test3@example.com'] }
     let(:bulk_create_params) { { emails: emails } }

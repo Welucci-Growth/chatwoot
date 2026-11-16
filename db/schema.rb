@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_30_000000) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_16_000001) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -52,6 +52,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_30_000000) do
     t.boolean "auto_offline", default: true, null: false
     t.bigint "custom_role_id"
     t.bigint "agent_capacity_policy_id"
+    t.string "access_profile"
     t.index ["account_id", "user_id"], name: "uniq_user_id_per_account_id", unique: true
     t.index ["account_id"], name: "index_account_users_on_account_id"
     t.index ["agent_capacity_policy_id"], name: "index_account_users_on_agent_capacity_policy_id"
@@ -1582,9 +1583,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_30_000000) do
     t.datetime "synced_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "instances", default: [], null: false, array: true
     t.index ["account_id", "instance"], name: "index_whatsapp_groups_on_account_id_and_instance"
     t.index ["account_id", "jid"], name: "index_whatsapp_groups_on_account_id_and_jid", unique: true
     t.index ["account_id"], name: "index_whatsapp_groups_on_account_id"
+    t.index ["instances"], name: "index_whatsapp_groups_on_instances", using: :gin
   end
 
   create_table "working_hours", force: :cascade do |t|

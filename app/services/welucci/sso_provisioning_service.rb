@@ -37,6 +37,10 @@ class Welucci::SsoProvisioningService
 
   def find_or_create_user(normalized_email)
     existing = User.from_email(normalized_email)
+    # An account an administrator set up ahead of time never got its confirmation email (the
+    # Hub is the door), and an unconfirmed user cannot sign in. The Hub has verified the
+    # address, which is what the confirmation would have proven.
+    existing&.confirm unless existing.nil? || existing.confirmed?
     return existing if existing
 
     user = User.new(

@@ -8,6 +8,15 @@ import { isOnOnboardingView } from 'v3/helpers/RouteHelper';
 import AnalyticsHelper from '../helper/AnalyticsHelper';
 
 const ONBOARDING_STEPS = ['account_details', 'enrichment', 'inbox_setup'];
+// What the monitoring access profile may open: the group monitor, its conversations and the
+// personal profile.
+const MONITORING_PATHS = [
+  '/groups',
+  '/dashboard',
+  '/conversations',
+  '/inbox/',
+  '/profile',
+];
 const routes = [...dashboard.routes];
 
 const onboardingPath = step =>
@@ -57,6 +66,13 @@ export const validateAuthenticateRoutePermission = async (to, next) => {
   }
   if (!needsOnboarding && isOnOnboardingView(to)) {
     return next(frontendURL(`accounts/${routeAccountId}/dashboard`));
+  }
+
+  if (
+    userAccount?.access_profile === 'monitoring' &&
+    !MONITORING_PATHS.some(path => to.path.includes(path))
+  ) {
+    return next(frontendURL(`accounts/${routeAccountId}/groups`));
   }
 
   const nextRoute = validateLoggedInRoutes(to, store.getters.getCurrentUser);

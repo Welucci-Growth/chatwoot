@@ -4,17 +4,18 @@
 #
 # Table name: luci_settings
 #
-#  id             :bigint           not null, primary key
-#  enabled        :boolean          default(FALSE), not null
-#  knowledge      :text
+#  id               :bigint           not null, primary key
+#  enabled          :boolean          default(FALSE), not null
+#  knowledge        :text
+#  lead_label       :string
+#  model            :string           default("claude-haiku-4-5"), not null
+#  required_label   :string           default("luci"), not null
+#  system_prompt    :text
+#  created_at       :datetime         not null
+#  updated_at       :datetime         not null
+#  account_id       :bigint           not null
 #  lead_pipeline_id :string
-#  lead_stage_id  :string
-#  model          :string           default("claude-haiku-4-5"), not null
-#  required_label :string           default("luci"), not null
-#  system_prompt  :text
-#  created_at     :datetime         not null
-#  updated_at     :datetime         not null
-#  account_id     :bigint           not null
+#  lead_stage_id    :string
 #
 # Indexes
 #

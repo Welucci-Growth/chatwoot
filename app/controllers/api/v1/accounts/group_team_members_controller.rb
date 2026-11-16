@@ -1,5 +1,7 @@
 class Api::V1::Accounts::GroupTeamMembersController < Api::V1::Accounts::BaseController
-  before_action :ensure_administrator
+  # The roster tells staff from clients in the group monitor, which agents use too; changing it
+  # stays with administrators.
+  before_action :ensure_administrator, except: [:index]
 
   def index
     render json: { team: Current.account.group_team_members.order(:name) }

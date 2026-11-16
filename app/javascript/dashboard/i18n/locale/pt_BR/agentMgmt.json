@@ -9,6 +9,12 @@
       "ADMINISTRATOR": "Administrador",
       "AGENT": "Agente"
     },
+    "ACCESS_PROFILE": {
+      "LABEL": "Perfil de acesso",
+      "FULL": "Painel completo",
+      "MONITORING": "Monitoramento de grupos (somente leitura)",
+      "HELP": "Monitoramento mostra só o monitor de grupos e as conversas das caixas de entrada de que o agente faz parte."
+    },
     "COUNT": "{n} agente | {n} agentes",
     "LIST": {
       "404": "Não existem agentes associados a esta conta",

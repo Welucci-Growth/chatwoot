@@ -8,6 +8,7 @@
 #  announce_only :boolean          default(FALSE), not null
 #  description   :text
 #  instance      :string           not null
+#  instances     :string           default([]), not null, is an Array
 #  jid           :string           not null
 #  locked        :boolean          default(FALSE), not null
 #  owner         :string
@@ -23,6 +24,7 @@
 #  index_whatsapp_groups_on_account_id               (account_id)
 #  index_whatsapp_groups_on_account_id_and_instance  (account_id,instance)
 #  index_whatsapp_groups_on_account_id_and_jid       (account_id,jid) UNIQUE
+#  index_whatsapp_groups_on_instances                (instances) USING gin
 #
 class WhatsappGroup < ApplicationRecord
   belongs_to :account
@@ -30,5 +32,6 @@ class WhatsappGroup < ApplicationRecord
   validates :jid, presence: true, uniqueness: { scope: :account_id }
   validates :instance, presence: true
 
-  scope :for_instance, ->(instance) { where(instance: instance) }
+  scope :for_instance, ->(instance) { where('? = ANY(instances)', instance) }
+  scope :for_instances, ->(names) { where('instances && ARRAY[?]::varchar[]', names) }
 end

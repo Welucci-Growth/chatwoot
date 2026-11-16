@@ -13,33 +13,43 @@ class Whatsapp::Evolution::GroupService
   def connected_instances
     request(:get, '/instance/fetchInstances')
       .select { |i| i['connectionStatus'] == 'open' }
-      .map { |i| { name: i['name'], profile_name: i['profileName'] } }
+      .map { |i| { name: i['name'], profile_name: i['profileName'], number: i['number'].presence || i['ownerJid'].to_s.split('@').first } }
   end
 
   # Groups live in the database rather than a cache: listing them takes minutes, so the
   # dashboard reads what was last synced and a background job keeps it current.
-  def stored_groups(instance: nil)
+  #
+  # `instances` narrows the directory to the numbers a viewer works with (nil means every
+  # number), and threads are only looked up in `inboxes`, the mirror inboxes they can open.
+  def stored_groups(inboxes:, instances: nil)
     scope = WhatsappGroup.where(account: channel.account)
-    scope = scope.for_instance(instance) if instance.present?
-    with_conversations(scope.order(:subject).map { |g| serialize(g) })
+    scope = scope.for_instances(instances) unless instances.nil?
+    with_conversations(scope.order(:subject).map { |g| serialize(g, instances) }, inboxes.map(&:id))
   end
 
   def last_synced_at
     WhatsappGroup.where(account: channel.account).maximum(:synced_at)
   end
 
-  # Upserts what Evolution reports and drops groups the number has left, so the directory
-  # matches reality instead of only ever growing.
+  # Upserts what Evolution reports and takes the number out of the groups it has left, so the
+  # directory matches reality instead of only ever growing. A group is only dropped once no
+  # number of ours is in it any more.
   def sync_groups(instance)
     seen = fetch_groups(instance).map { |g| upsert_group(instance, g) }
-    WhatsappGroup.where(account: channel.account).for_instance(instance).where.not(jid: seen).delete_all
+    groups = WhatsappGroup.where(account: channel.account)
+    groups.for_instance(instance).where.not(jid: seen).update_all(['instances = array_remove(instances, ?)', instance]) # rubocop:disable Rails/SkipsModelValidations
+    groups.where('cardinality(instances) = 0').delete_all
+    groups.where(instance: instance).where.not('? = ANY(instances)', instance).update_all('instance = instances[1]') # rubocop:disable Rails/SkipsModelValidations
     seen.count
   end
 
+  # `instance` stays the number that first reported the group, the one admin actions go through;
+  # `instances` collects every number of ours that is in it.
   def upsert_group(instance, attrs)
     record = WhatsappGroup.find_or_initialize_by(account: channel.account, jid: attrs[:jid])
     record.assign_attributes(
-      instance: instance, subject: attrs[:subject], description: attrs[:description],
+      instance: record.instance.presence || instance, instances: record.instances | [instance],
+      subject: attrs[:subject], description: attrs[:description],
       size: attrs[:size], owner: attrs[:owner], announce_only: attrs[:announce_only].present?,
       locked: attrs[:locked].present?, synced_at: Time.current
     )
@@ -104,8 +114,8 @@ class Whatsapp::Evolution::GroupService
   # Evolution knows every group the number belongs to; Chatwoot only has a thread for the ones
   # that have spoken since the mirror was connected. Joining the two is what turns a directory
   # into something you can monitor.
-  def with_conversations(groups)
-    threads = conversation_index(groups.pluck(:jid))
+  def with_conversations(groups, inbox_ids)
+    threads = conversation_index(groups.pluck(:jid), inbox_ids)
     groups.map { |g| g.merge(threads.fetch(g[:jid], {})) }
   end
 
@@ -118,21 +128,29 @@ class Whatsapp::Evolution::GroupService
     end
   end
 
-  def conversation_index(jids)
-    inbox = channel.inbox
-    ContactInbox.where(inbox_id: inbox.id, source_id: jids)
-                .includes(conversations: :messages)
-                .each_with_object({}) do |ci, acc|
+  # A group several of our numbers are in is mirrored once per inbox; the most recently active
+  # thread is the one worth opening.
+  def conversation_index(jids, inbox_ids)
+    latest_threads(jids, inbox_ids).transform_values { |conversation| thread_summary(conversation) }
+  end
+
+  def latest_threads(jids, inbox_ids)
+    ContactInbox.where(inbox_id: inbox_ids, source_id: jids).includes(conversations: :messages).each_with_object({}) do |ci, threads|
       conversation = ci.conversations.max_by(&:id)
       next if conversation.blank?
 
-      acc[ci.source_id] = {
-        conversation_id: conversation.display_id,
-        message_count: conversation.messages.size,
-        unread_count: conversation.messages.count { |m| m.incoming? && m.created_at > seen_at(conversation) },
-        last_activity_at: conversation.last_activity_at
-      }.merge(reply_status(conversation))
+      current = threads[ci.source_id]
+      threads[ci.source_id] = conversation if current.nil? || conversation.last_activity_at.to_i > current.last_activity_at.to_i
     end
+  end
+
+  def thread_summary(conversation)
+    {
+      conversation_id: conversation.display_id,
+      message_count: conversation.messages.size,
+      unread_count: conversation.messages.count { |m| m.incoming? && m.created_at > seen_at(conversation) },
+      last_activity_at: conversation.last_activity_at
+    }.merge(reply_status(conversation))
   end
 
   # A group is waiting when the newest message came from someone outside the team, which is
@@ -173,9 +191,11 @@ class Whatsapp::Evolution::GroupService
     conversation.agent_last_seen_at || Time.zone.at(0)
   end
 
-  def serialize(group)
+  # The number shown is one the viewer works with, so a finance user never sees a group labelled
+  # with a colleague's instance.
+  def serialize(group, visible_instances = nil)
     {
-      instance: group.instance, jid: group.jid, subject: group.subject,
+      instance: (group.instances & Array(visible_instances)).first || group.instance, jid: group.jid, subject: group.subject,
       description: group.description, size: group.size, owner: group.owner,
       announce_only: group.announce_only, locked: group.locked
     }

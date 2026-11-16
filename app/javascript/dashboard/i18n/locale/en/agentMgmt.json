@@ -9,6 +9,12 @@
       "ADMINISTRATOR": "Administrator",
       "AGENT": "Agent"
     },
+    "ACCESS_PROFILE": {
+      "LABEL": "Access profile",
+      "FULL": "Full dashboard",
+      "MONITORING": "Group monitoring (read-only)",
+      "HELP": "Monitoring shows only the group monitor and the conversations of the inboxes this agent belongs to."
+    },
     "COUNT": "{n} agent | {n} agents",
     "LIST": {
       "404": "There are no agents associated to this account",

@@ -14,6 +14,7 @@ const { t } = useI18n();
 
 const agentName = ref('');
 const agentEmail = ref('');
+const accessProfile = ref('');
 const selectedRoleId = ref('agent');
 
 const rules = {
@@ -54,6 +55,12 @@ const roles = computed(() => {
   return [...defaultRoles, ...customRoles];
 });
 
+// Blank is the full dashboard; monitoring narrows it to groups and the agent's conversations.
+const accessProfiles = computed(() => [
+  { value: '', label: t('AGENT_MGMT.ACCESS_PROFILE.FULL') },
+  { value: 'monitoring', label: t('AGENT_MGMT.ACCESS_PROFILE.MONITORING') },
+]);
+
 const selectedRole = computed(() =>
   roles.value.find(
     role =>
@@ -69,6 +76,7 @@ const addAgent = async () => {
     const payload = {
       name: agentName.value,
       email: agentEmail.value,
+      access_profile: accessProfile.value,
     };
 
     if (selectedRole.value.name.startsWith('custom_')) {
@@ -131,6 +139,24 @@ const addAgent = async () => {
           </select>
           <span v-if="v$.selectedRoleId.$error" class="message">
             {{ $t('AGENT_MGMT.ADD.FORM.AGENT_TYPE.ERROR') }}
+          </span>
+        </label>
+      </div>
+
+      <div class="w-full">
+        <label>
+          {{ $t('AGENT_MGMT.ACCESS_PROFILE.LABEL') }}
+          <select v-model="accessProfile">
+            <option
+              v-for="profile in accessProfiles"
+              :key="profile.value"
+              :value="profile.value"
+            >
+              {{ profile.label }}
+            </option>
+          </select>
+          <span class="text-xs text-n-slate-11">
+            {{ $t('AGENT_MGMT.ACCESS_PROFILE.HELP') }}
           </span>
         </label>
       </div>

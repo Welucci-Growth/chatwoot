@@ -12,7 +12,19 @@ class Dispatcher
     @async_dispatcher = AsyncDispatcher.new
   end
 
+  # Records recreated from history were already seen and acted on where they happened;
+  # dispatching them would replay webhooks, automations and notifications for old news.
+  def self.silently
+    previous = Current.events_silenced
+    Current.events_silenced = true
+    yield
+  ensure
+    Current.events_silenced = previous
+  end
+
   def dispatch(event_name, timestamp, data, _async = false)
+    return if Current.events_silenced
+
     @sync_dispatcher.dispatch(event_name, timestamp, data)
     @async_dispatcher.dispatch(event_name, timestamp, data)
   end

@@ -182,8 +182,11 @@ class Whatsapp::IncomingMessageEvolutionService < Whatsapp::IncomingMessageBaseS
     @message_key ||= data[:key].to_h.with_indifferent_access
   end
 
+  # WhatsApp addresses many one-to-one chats by an opaque LID; the phone-based JID travels
+  # alongside it, and only that one makes a contact Chatwoot can recognise.
   def remote_jid
-    message_key[:remoteJid].to_s
+    jid = message_key[:remoteJid].to_s
+    jid.end_with?('@lid') && message_key[:remoteJidAlt].present? ? message_key[:remoteJidAlt].to_s : jid
   end
 
   def group?

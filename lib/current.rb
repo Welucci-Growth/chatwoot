@@ -5,6 +5,7 @@ module Current
   thread_mattr_accessor :executed_by
   thread_mattr_accessor :contact
   thread_mattr_accessor :inbox
+  thread_mattr_accessor :events_silenced
 
   def self.reset
     Current.user = nil
@@ -13,5 +14,6 @@ module Current
     Current.executed_by = nil
     Current.contact = nil
     Current.inbox = nil
+    Current.events_silenced = nil
   end
 end

@@ -3,6 +3,7 @@
 # Table name: account_users
 #
 #  id                       :bigint           not null, primary key
+#  access_profile           :string
 #  active_at                :datetime
 #  auto_offline             :boolean          default(TRUE), not null
 #  availability             :integer          default("online"), not null
@@ -33,6 +34,12 @@ class AccountUser < ApplicationRecord
 
   enum role: { agent: 0, administrator: 1 }
   enum availability: { online: 0, offline: 1, busy: 2 }
+
+  # Narrows what the dashboard shows an agent. `monitoring` is for teams that only follow
+  # mirrored groups and chats (finance, for one): groups and their own conversations, nothing
+  # else. Access itself is still decided by role and inbox membership.
+  ACCESS_PROFILES = %w[monitoring].freeze
+  validates :access_profile, inclusion: { in: ACCESS_PROFILES }, allow_nil: true
 
   accepts_nested_attributes_for :account
 

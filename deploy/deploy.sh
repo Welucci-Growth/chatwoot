@@ -32,6 +32,9 @@ git pull origin welucci
 docker build -f docker/Dockerfile -t chatwoot-welucci:latest .
 
 cd /root/chatwoot
+# The containers do not migrate on boot, and new code reading a column that is not there yet
+# takes the whole app down. Same stdin caveat as the backup above.
+docker compose run --rm -T rails bundle exec rails db:migrate </dev/null
 docker compose up -d --force-recreate
 echo "DEPLOYED $COMMIT"
 REMOTE
