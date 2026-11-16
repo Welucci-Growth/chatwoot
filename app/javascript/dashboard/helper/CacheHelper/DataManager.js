@@ -1,4 +1,5 @@
 import { openDB } from 'idb';
+import Cookies from 'js-cookie';
 import { DATA_VERSION } from './version';
 
 export class DataManager {
@@ -10,8 +11,11 @@ export class DataManager {
 
   async initDb() {
     if (this.db) return this.db;
-    const dbName = `cw-store-${this.accountId}`;
-    this.db = await openDB(`cw-store-${this.accountId}`, DATA_VERSION, {
+    // Inboxes are scoped per user, so a browser that switches users without
+    // logging out (SSO links, impersonation) must not reuse another user's cache.
+    const { uid = '' } = JSON.parse(Cookies.get('cw_d_session_info') || '{}');
+    const dbName = `cw-store-${this.accountId}-${uid}`;
+    this.db = await openDB(dbName, DATA_VERSION, {
       upgrade(db) {
         db.createObjectStore('cache-keys');
         db.createObjectStore('inbox', { keyPath: 'id' });

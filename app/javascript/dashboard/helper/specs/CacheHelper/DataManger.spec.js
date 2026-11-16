@@ -25,6 +25,21 @@ describe('DataManager', () => {
       expect(dataManager.db).not.toBeNull();
     });
 
+    it('keeps a separate database per signed-in user', async () => {
+      document.cookie = `cw_d_session_info=${encodeURIComponent(
+        JSON.stringify({ uid: 'agent@example.com' })
+      )}`;
+      const agentManager = new DataManager(accountId);
+      await agentManager.initDb();
+
+      expect(agentManager.db.name).toBe(
+        `cw-store-${accountId}-agent@example.com`
+      );
+      expect(dataManager.db.name).toBe(`cw-store-${accountId}-`);
+      document.cookie =
+        'cw_d_session_info=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    });
+
     it('should return the same instance of the database', async () => {
       const db1 = await dataManager.initDb();
       const db2 = await dataManager.initDb();
