@@ -13,9 +13,15 @@ class Api::V1::Accounts::AssignableAgentsController < Api::V1::Accounts::BaseCon
     agents = Current.account.users.where(id: agent_ids)
     @assignable_agents = (agents + Current.account.administrators).uniq
     @agent_bots = @include_agent_bots ? AgentBot.accessible_to(Current.account) : []
+    restrict_to_monitoring_peers if Current.account_user&.monitoring?
   end
 
   private
+
+  def restrict_to_monitoring_peers
+    @assignable_agents = @inboxes.map { |inbox| inbox.monitoring_peers.to_a }.inject(:&)
+    @agent_bots = []
+  end
 
   def fetch_inboxes
     @inboxes = Current.account.inboxes.find(permitted_params[:inbox_ids])

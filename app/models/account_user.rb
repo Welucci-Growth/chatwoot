@@ -41,6 +41,10 @@ class AccountUser < ApplicationRecord
   ACCESS_PROFILES = %w[monitoring].freeze
   validates :access_profile, inclusion: { in: ACCESS_PROFILES }, allow_nil: true
 
+  def monitoring?
+    access_profile == 'monitoring'
+  end
+
   accepts_nested_attributes_for :account
 
   after_create_commit :notify_creation, :create_notification_setting

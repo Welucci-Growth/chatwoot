@@ -2,6 +2,7 @@ class Api::V1::Accounts::BulkActionsController < Api::V1::Accounts::BaseControll
   def create
     case normalized_type
     when 'Conversation'
+      restrict_monitoring_bulk_assignment
       enqueue_conversation_job
       head :ok
     when 'Contact'
@@ -17,6 +18,20 @@ class Api::V1::Accounts::BulkActionsController < Api::V1::Accounts::BaseControll
 
   def normalized_type
     params[:type].to_s.camelize
+  end
+
+  # Same rule as a single assignment: a monitoring team only hands conversations to each other.
+  def restrict_monitoring_bulk_assignment
+    return unless Current.account_user&.monitoring?
+
+    fields = params[:fields] || {}
+    raise Pundit::NotAuthorizedError if fields[:team_id].present?
+    raise Pundit::NotAuthorizedError unless fields[:assignee_id].to_i.zero? || monitoring_peer_everywhere?(fields[:assignee_id])
+  end
+
+  def monitoring_peer_everywhere?(user_id)
+    inboxes = Current.account.inboxes.where(id: Current.account.conversations.where(display_id: params[:ids]).select(:inbox_id))
+    inboxes.all? { |inbox| inbox.monitoring_peers.exists?(id: user_id) }
   end
 
   def enqueue_conversation_job

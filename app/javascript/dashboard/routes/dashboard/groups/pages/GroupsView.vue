@@ -1,11 +1,13 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import { useStore } from 'vuex';
 import EvolutionGroupsAPI from 'dashboard/api/evolutionGroups';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiSelectComboBox.vue';
+import { useMapGetter } from 'dashboard/composables/store';
 import ConversationBox from 'dashboard/components/widgets/conversation/ConversationBox.vue';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
@@ -39,6 +41,22 @@ const showSettings = ref(false);
 const draftSubject = ref('');
 const draftDescription = ref('');
 
+// Up to two hours a waiting client shows amber; past that, red.
+const LATE_AFTER_MINUTES = 120;
+const ownerFilter = ref('all');
+const labelFilter = ref('');
+const currentUserId = useMapGetter('getCurrentUserID');
+const accountLabels = useMapGetter('labels/getLabels');
+const getAssignableAgents = useMapGetter(
+  'inboxAssignableAgents/getAssignableAgents'
+);
+
+const waitingMinutes = group =>
+  group.status === 'waiting' && group.waiting_since
+    ? Math.floor((Date.now() - new Date(group.waiting_since)) / 60000)
+    : 0;
+const isLate = group => waitingMinutes(group) >= LATE_AFTER_MINUTES;
+
 const instanceNames = ref([]);
 const instances = computed(() => [...instanceNames.value].sort());
 
@@ -53,7 +71,23 @@ const filtered = computed(() =>
       props.filter === 'all' ||
       (props.filter === 'active' && Boolean(g.conversation_id)) ||
       (props.filter === 'idle' && !g.conversation_id);
-    return matchesName && matchesInstance && matchesFilter;
+    const matchesOwner =
+      ownerFilter.value === 'all' ||
+      (ownerFilter.value === 'mine' &&
+        g.assignee?.id === currentUserId.value) ||
+      (ownerFilter.value === 'unassigned' &&
+        Boolean(g.conversation_id) &&
+        !g.assignee) ||
+      g.assignee?.id === ownerFilter.value;
+    const matchesLabel =
+      !labelFilter.value || (g.labels || []).includes(labelFilter.value);
+    return (
+      matchesName &&
+      matchesInstance &&
+      matchesFilter &&
+      matchesOwner &&
+      matchesLabel
+    );
   })
 );
 
@@ -74,11 +108,46 @@ const ordered = computed(() =>
   })
 );
 
+// Who holds which groups and how many clients wait on each, so the team can spread the load.
+const ownerSummary = computed(() => {
+  const rows = new Map();
+  groups.value
+    .filter(g => g.conversation_id)
+    .forEach(g => {
+      const key = g.assignee?.id ?? 'unassigned';
+      const row = rows.get(key) || {
+        id: key,
+        name: g.assignee?.name || t('GROUPS.SUMMARY.UNASSIGNED'),
+        total: 0,
+        waiting: 0,
+        late: 0,
+      };
+      row.total += 1;
+      if (g.status === 'waiting') row.waiting += 1;
+      if (isLate(g)) row.late += 1;
+      rows.set(key, row);
+    });
+  return [...rows.values()].sort(
+    (a, b) => b.late - a.late || b.waiting - a.waiting || b.total - a.total
+  );
+});
+
+const lateCount = computed(() => groups.value.filter(isLate).length);
+
+const labelOptions = computed(() =>
+  [...new Set(groups.value.flatMap(g => g.labels || []))].sort()
+);
+
+const accountLabelOptions = computed(() =>
+  (accountLabels.value || []).map(label => ({
+    value: label.title,
+    label: label.title,
+  }))
+);
+
 const waitingLabel = group => {
   if (!group.waiting_since) return '';
-  const minutes = Math.floor(
-    (Date.now() - new Date(group.waiting_since)) / 60000
-  );
+  const minutes = waitingMinutes(group);
   if (minutes < 60) return `${minutes}min`;
   const hours = Math.floor(minutes / 60);
   return hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
@@ -121,6 +190,53 @@ const requestRefresh = async () => {
 };
 
 const activeConversationId = ref(null);
+
+const peers = computed(() =>
+  selected.value?.inbox_id
+    ? getAssignableAgents.value(selected.value.inbox_id)
+    : []
+);
+
+// The list feeds the summary and the table, so a change made here shows up everywhere at once.
+const updateGroup = (jid, changes) => {
+  groups.value = groups.value.map(g =>
+    g.jid === jid ? { ...g, ...changes } : g
+  );
+  if (selected.value?.jid === jid) {
+    selected.value = { ...selected.value, ...changes };
+  }
+};
+
+watch(
+  () => selected.value?.inbox_id,
+  inboxId => {
+    if (inboxId) store.dispatch('inboxAssignableAgents/fetch', [inboxId]);
+  }
+);
+
+const assignOwner = async event => {
+  const agentId = Number(event.target.value) || 0;
+  await store.dispatch('assignAgent', {
+    conversationId: selected.value.conversation_id,
+    agentId,
+  });
+  const agent = peers.value.find(a => a.id === agentId);
+  updateGroup(selected.value.jid, {
+    assignee: agent
+      ? { id: agent.id, name: agent.available_name || agent.name }
+      : null,
+  });
+};
+
+const updateLabels = async labels => {
+  const conversationId = selected.value.conversation_id;
+  const jid = selected.value.jid;
+  await store.dispatch('conversationLabels/update', {
+    conversationId,
+    labels,
+  });
+  updateGroup(jid, { labels: [...labels] });
+};
 
 // Groups that have already spoken have a real Chatwoot conversation, so the thread is the
 // standard conversation pane rather than a second chat implementation.
@@ -256,6 +372,12 @@ onUnmounted(() => {
           <p class="mt-1 text-sm text-n-slate-11">
             {{ $t('GROUPS.SUBTITLE') }}
           </p>
+          <p
+            v-if="lateCount"
+            class="inline-block px-2 py-0.5 mt-2 text-xs font-medium rounded-full bg-n-ruby-3 text-n-ruby-11"
+          >
+            {{ $t('GROUPS.LATE_COUNT', { count: lateCount }) }}
+          </p>
         </div>
         <NextButton
           v-if="isAdmin"
@@ -269,7 +391,53 @@ onUnmounted(() => {
         />
       </div>
 
+      <div v-if="ownerSummary.length" class="flex flex-wrap gap-2 mb-4">
+        <button
+          v-for="row in ownerSummary"
+          :key="row.id"
+          type="button"
+          class="flex flex-col items-start px-3 py-2 text-left border rounded-lg border-n-weak hover:bg-n-slate-2"
+          :class="{ 'bg-n-slate-2': ownerFilter === row.id }"
+          @click="ownerFilter = ownerFilter === row.id ? 'all' : row.id"
+        >
+          <span class="text-sm font-medium text-n-slate-12">
+            {{ row.name }}
+          </span>
+          <span class="text-xs text-n-slate-11">
+            {{
+              $t('GROUPS.SUMMARY.LINE', {
+                total: row.total,
+                waiting: row.waiting,
+              })
+            }}
+            <span v-if="row.late" class="font-medium text-n-ruby-11">
+              {{ $t('GROUPS.SUMMARY.LATE', { count: row.late }) }}
+            </span>
+          </span>
+        </button>
+      </div>
+
       <div class="flex flex-wrap gap-3 mb-4">
+        <select v-model="ownerFilter" class="w-48 mb-0">
+          <option value="all">{{ $t('GROUPS.OWNER_FILTER.ALL') }}</option>
+          <option value="mine">{{ $t('GROUPS.OWNER_FILTER.MINE') }}</option>
+          <option value="unassigned">
+            {{ $t('GROUPS.OWNER_FILTER.UNASSIGNED') }}
+          </option>
+          <option
+            v-for="row in ownerSummary.filter(r => r.id !== 'unassigned')"
+            :key="row.id"
+            :value="row.id"
+          >
+            {{ row.name }}
+          </option>
+        </select>
+        <select v-model="labelFilter" class="w-48 mb-0">
+          <option value="">{{ $t('GROUPS.LABEL_FILTER_ALL') }}</option>
+          <option v-for="label in labelOptions" :key="label" :value="label">
+            {{ label }}
+          </option>
+        </select>
         <input
           v-model="search"
           type="text"
@@ -320,6 +488,12 @@ onUnmounted(() => {
                 {{ $t('GROUPS.TABLE.STATUS') }}
               </th>
               <th class="px-4 py-2 font-medium">
+                {{ $t('GROUPS.TABLE.OWNER') }}
+              </th>
+              <th class="px-4 py-2 font-medium">
+                {{ $t('GROUPS.TABLE.LABELS') }}
+              </th>
+              <th class="px-4 py-2 font-medium">
                 {{ $t('GROUPS.TABLE.ACTIVITY') }}
               </th>
             </tr>
@@ -346,7 +520,12 @@ onUnmounted(() => {
               <td class="px-4 py-2">
                 <span
                   v-if="group.status === 'waiting'"
-                  class="px-2 py-0.5 text-xs rounded-full bg-n-amber-3 text-n-amber-11 whitespace-nowrap"
+                  class="px-2 py-0.5 text-xs rounded-full whitespace-nowrap"
+                  :class="
+                    isLate(group)
+                      ? 'bg-n-ruby-3 text-n-ruby-11'
+                      : 'bg-n-amber-3 text-n-amber-11'
+                  "
                 >
                   {{
                     $t('GROUPS.STATUS.WAITING_FOR', {
@@ -362,6 +541,20 @@ onUnmounted(() => {
                 </span>
                 <span v-else class="text-xs text-n-slate-10">
                   {{ $t('GROUPS.STATUS.IDLE') }}
+                </span>
+              </td>
+              <td class="px-4 py-2 text-n-slate-11 whitespace-nowrap">
+                {{ group.assignee?.name || '—' }}
+              </td>
+              <td class="px-4 py-2">
+                <span class="flex flex-wrap gap-1">
+                  <span
+                    v-for="label in group.labels || []"
+                    :key="label"
+                    class="px-1.5 py-0.5 text-xs rounded bg-n-slate-3 text-n-slate-11"
+                  >
+                    {{ label }}
+                  </span>
                 </span>
               </td>
               <td class="px-4 py-2 text-n-slate-11">
@@ -414,6 +607,39 @@ onUnmounted(() => {
             icon="i-lucide-x"
             :aria-label="$t('GROUPS.DETAIL.CLOSE')"
             @click="selected = null"
+          />
+        </div>
+      </div>
+
+      <div
+        v-if="selected.conversation_id && !showSettings"
+        class="flex flex-col gap-3 px-4 py-3 border-b border-n-weak"
+      >
+        <label class="flex items-center gap-2 mb-0 text-sm text-n-slate-11">
+          <span class="w-24 shrink-0">{{
+            $t('GROUPS.DETAIL.OWNER_LABEL')
+          }}</span>
+          <select
+            class="mb-0"
+            :value="selected.assignee?.id || 0"
+            @change="assignOwner"
+          >
+            <option :value="0">{{ $t('GROUPS.DETAIL.NO_OWNER') }}</option>
+            <option v-for="agent in peers" :key="agent.id" :value="agent.id">
+              {{ agent.available_name || agent.name }}
+            </option>
+          </select>
+        </label>
+        <div class="flex items-start gap-2 text-sm text-n-slate-11">
+          <span class="w-24 pt-2 shrink-0">
+            {{ $t('GROUPS.DETAIL.LABELS') }}
+          </span>
+          <TagMultiSelectComboBox
+            class="flex-1"
+            :model-value="[...(selected.labels || [])]"
+            :options="accountLabelOptions"
+            :placeholder="$t('GROUPS.DETAIL.LABELS_PLACEHOLDER')"
+            @update:model-value="updateLabels"
           />
         </div>
       </div>

@@ -16,7 +16,9 @@
       "ANNOUNCE": "Só admins",
       "ACTIVITY": "Atividade",
       "NO_THREAD": "Sem mensagens",
-      "STATUS": "Status"
+      "STATUS": "Status",
+      "OWNER": "Responsável",
+      "LABELS": "Etiquetas"
     },
     "DETAIL": {
       "TITLE": "Detalhes do grupo",
@@ -34,7 +36,11 @@
       "SAVE": "Salvar alterações",
       "SAVED": "Grupo atualizado",
       "COPIED": "Link copiado",
-      "CLOSE": "Fechar"
+      "CLOSE": "Fechar",
+      "OWNER_LABEL": "Responsável",
+      "NO_OWNER": "Sem responsável",
+      "LABELS": "Etiquetas",
+      "LABELS_PLACEHOLDER": "Adicionar etiquetas"
     },
     "NO_THREAD_YET": "Este grupo não enviou mensagem desde que o espelho foi conectado, então ainda não há conversa para mostrar.",
     "MENU": {
@@ -62,6 +68,18 @@
       "IDLE": "Sem atividade",
       "WAITING_FOR": "Aguardando há {duration}"
     },
-    "REFRESH_STARTED": "Atualizando em segundo plano. Isso percorre todos os números e leva alguns minutos."
+    "REFRESH_STARTED": "Atualizando em segundo plano. Isso percorre todos os números e leva alguns minutos.",
+    "LATE_COUNT": "{count} grupos aguardando há mais de 2h",
+    "LABEL_FILTER_ALL": "Todas as etiquetas",
+    "OWNER_FILTER": {
+      "ALL": "Todos",
+      "MINE": "Meus grupos",
+      "UNASSIGNED": "Sem responsável"
+    },
+    "SUMMARY": {
+      "UNASSIGNED": "Sem responsável",
+      "LINE": "{total} grupos · {waiting} aguardando",
+      "LATE": "· {count} há mais de 2h"
+    }
   }
 }

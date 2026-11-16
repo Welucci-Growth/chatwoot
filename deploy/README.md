@@ -96,3 +96,11 @@ A inbox nasce com o espelho pausado e sem distribuição automática. O `History
 
 No primeiro acesso pelo Hub a conta é adotada com tudo isso. O perfil de monitoramento mostra só **Grupos** (dos números das inboxes da pessoa) e **Conversas** dessas inboxes; o resto do painel fica fora do menu e das rotas. Ações que mudam um grupo (nome, convite, admins) e o botão de atualizar diretório continuam só para administradores.
 
+**Organização no monitor de grupos:** painel por responsável (grupos e quantos aguardam), filtros *Meus grupos / Sem responsável / pessoa* e por etiqueta, colunas Responsável e Etiquetas, e alerta de espera: amarelo até 2h aguardando, vermelho depois. No painel do grupo dá para escolher o responsável e as etiquetas; quem tem o perfil de monitoramento só atribui entre colegas com o mesmo perfil naquela inbox (nem administradores, nem times, nem bots — o servidor recusa o resto). Notas internas funcionam na caixa de texto da conversa.
+
+**Histórico completo de um número já conectado:**
+```bash
+cd /root/chatwoot && docker compose exec -T rails bundle exec rails runner "Whatsapp::Evolution::HistoryImportJob.perform_later(<inbox_id>, 3650)" </dev/null
+```
+Pode rodar com o espelho ligado: a paginação das mensagens segue a data de envio, então o histórico antigo aparece ao rolar mesmo tendo sido importado depois.
+

@@ -1,4 +1,5 @@
 class Api::V1::Accounts::Conversations::AssignmentsController < Api::V1::Accounts::Conversations::BaseController
+  before_action :restrict_monitoring_assignment
   # assigns agent/team to a conversation
   def create
     if params.key?(:assignee_id) || agent_bot_assignment?
@@ -11,6 +12,17 @@ class Api::V1::Accounts::Conversations::AssignmentsController < Api::V1::Account
   end
 
   private
+
+  # A monitoring team hands conversations to each other only: never to a team, a bot or someone
+  # outside the profile. Unassigning stays open to them.
+  def restrict_monitoring_assignment
+    return unless Current.account_user&.monitoring?
+    raise Pundit::NotAuthorizedError if params.key?(:team_id) || agent_bot_assignment?
+    # The dashboard unassigns by sending 0.
+    return if params[:assignee_id].to_i.zero?
+
+    raise Pundit::NotAuthorizedError unless @conversation.inbox.monitoring_peers.exists?(id: params[:assignee_id])
+  end
 
   def set_agent
     resource = Conversations::AssignmentService.new(

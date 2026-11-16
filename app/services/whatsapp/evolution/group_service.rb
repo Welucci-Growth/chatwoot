@@ -135,7 +135,7 @@ class Whatsapp::Evolution::GroupService
   end
 
   def latest_threads(jids, inbox_ids)
-    ContactInbox.where(inbox_id: inbox_ids, source_id: jids).includes(conversations: :messages).each_with_object({}) do |ci, threads|
+    ContactInbox.where(inbox_id: inbox_ids, source_id: jids).includes(conversations: %i[messages assignee]).each_with_object({}) do |ci, threads|
       conversation = ci.conversations.max_by(&:id)
       next if conversation.blank?
 
@@ -147,6 +147,9 @@ class Whatsapp::Evolution::GroupService
   def thread_summary(conversation)
     {
       conversation_id: conversation.display_id,
+      inbox_id: conversation.inbox_id,
+      assignee: conversation.assignee && { id: conversation.assignee.id, name: conversation.assignee.available_name },
+      labels: conversation.cached_label_list_array,
       message_count: conversation.messages.size,
       unread_count: conversation.messages.count { |m| m.incoming? && m.created_at > seen_at(conversation) },
       last_activity_at: conversation.last_activity_at

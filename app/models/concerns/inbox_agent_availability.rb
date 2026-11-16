@@ -15,6 +15,12 @@ module InboxAgentAvailability
     member_ids
   end
 
+  # People following this inbox with the monitoring profile. They hand conversations to each
+  # other and to nobody else, administrators included.
+  def monitoring_peers
+    members.where(id: account.account_users.where(access_profile: 'monitoring').select(:user_id))
+  end
+
   private
 
   def fetch_online_agent_ids

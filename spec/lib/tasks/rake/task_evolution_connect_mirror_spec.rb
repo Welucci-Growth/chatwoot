@@ -24,7 +24,7 @@ RSpec.describe Rake::Task do
     inbox = account.inboxes.find_by!(name: 'Contas a Pagar')
     expect(inbox.channel).to have_attributes(provider: 'evolution', phone_number: '+5511955550000')
     expect(inbox.channel.provider_config).to include('instance' => 'contas_a_pagar', 'mirror_paused' => true, 'base_url' => 'https://evo.test')
-    expect(inbox.enable_auto_assignment).to be(false)
+    expect(inbox).to have_attributes(enable_auto_assignment: false, lock_to_single_conversation: true)
     expect(Whatsapp::Evolution::HistoryImportJob).to have_been_enqueued.with(inbox.id, 30)
   end
 

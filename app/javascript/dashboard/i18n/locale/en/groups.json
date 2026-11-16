@@ -16,7 +16,9 @@
       "ANNOUNCE": "Admins only",
       "ACTIVITY": "Activity",
       "NO_THREAD": "No messages yet",
-      "STATUS": "Status"
+      "STATUS": "Status",
+      "OWNER": "Owner",
+      "LABELS": "Labels"
     },
     "DETAIL": {
       "TITLE": "Group details",
@@ -34,7 +36,11 @@
       "SAVE": "Save changes",
       "SAVED": "Group updated",
       "COPIED": "Link copied",
-      "CLOSE": "Close"
+      "CLOSE": "Close",
+      "OWNER_LABEL": "Owner",
+      "NO_OWNER": "No owner",
+      "LABELS": "Labels",
+      "LABELS_PLACEHOLDER": "Add labels"
     },
     "NO_THREAD_YET": "This group has not sent a message since the mirror was connected, so there is no thread to show yet.",
     "MENU": {
@@ -62,6 +68,18 @@
       "IDLE": "No activity",
       "WAITING_FOR": "Waiting {duration}"
     },
-    "REFRESH_STARTED": "Refreshing in the background. This walks every number and takes a couple of minutes."
+    "REFRESH_STARTED": "Refreshing in the background. This walks every number and takes a couple of minutes.",
+    "LATE_COUNT": "{count} groups waiting more than 2h",
+    "LABEL_FILTER_ALL": "All labels",
+    "OWNER_FILTER": {
+      "ALL": "Everyone",
+      "MINE": "My groups",
+      "UNASSIGNED": "No owner"
+    },
+    "SUMMARY": {
+      "UNASSIGNED": "No owner",
+      "LINE": "{total} groups · {waiting} waiting",
+      "LATE": "· {count} over 2h"
+    }
   }
 }

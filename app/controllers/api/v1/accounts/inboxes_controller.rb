@@ -17,7 +17,7 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
 
   # Deprecated: This API will be removed in 2.7.0
   def assignable_agents
-    @assignable_agents = @inbox.assignable_agents
+    @assignable_agents = Current.account_user&.monitoring? ? @inbox.monitoring_peers : @inbox.assignable_agents
   end
 
   def campaigns

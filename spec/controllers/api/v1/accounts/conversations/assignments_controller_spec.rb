@@ -181,4 +181,64 @@ RSpec.describe 'Conversation Assignment API', type: :request do
       end
     end
   end
+
+  describe 'monitoring access profile' do
+    let(:account) { create(:account) }
+    let(:inbox) { create(:inbox, account: account) }
+    let(:conversation) { create(:conversation, account: account, inbox: inbox) }
+    let(:finance) { create(:user, account: account, role: :agent) }
+    let(:peer) { create(:user, account: account, role: :agent) }
+    let(:admin) { create(:user, account: account, role: :administrator) }
+    let(:url) { "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/assignments" }
+
+    before do
+      [finance, peer].each do |user|
+        create(:inbox_member, user: user, inbox: inbox)
+        user.account_users.find_by(account: account).update!(access_profile: 'monitoring')
+      end
+    end
+
+    it 'hands a conversation to a colleague with the same profile' do
+      post url, params: { assignee_id: peer.id }, headers: finance.create_new_auth_token, as: :json
+
+      expect(conversation.reload.assignee).to eq(peer)
+    end
+
+    it 'never hands it to someone outside the profile, administrators included' do
+      post url, params: { assignee_id: admin.id }, headers: finance.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(conversation.reload.assignee).to be_nil
+    end
+
+    it 'never hands it to a team' do
+      team = create(:team, account: account)
+
+      post url, params: { team_id: team.id }, headers: finance.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'can leave it without an owner' do
+      conversation.update!(assignee: peer)
+
+      post url, params: { assignee_id: 0 }, headers: finance.create_new_auth_token, as: :json
+
+      expect(conversation.reload.assignee).to be_nil
+    end
+
+    it 'lists only colleagues with the same profile as assignable' do
+      get "/api/v1/accounts/#{account.id}/assignable_agents", params: { inbox_ids: [inbox.id] }, headers: finance.create_new_auth_token
+
+      expect(response.parsed_body['payload'].pluck('id')).to contain_exactly(finance.id, peer.id)
+    end
+
+    it 'keeps bulk assignment within the profile too' do
+      post "/api/v1/accounts/#{account.id}/bulk_actions",
+           params: { type: 'Conversation', ids: [conversation.display_id], fields: { assignee_id: admin.id } },
+           headers: finance.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+  end
 end

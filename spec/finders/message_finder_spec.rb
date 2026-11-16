@@ -73,5 +73,16 @@ describe MessageFinder do
         expect(result.last.id).to be conversation.messages[-2].id
       end
     end
+
+    context 'with history imported after newer messages' do
+      let!(:oldest_shown) { conversation.messages.reorder(:created_at).first }
+      let(:params) { { before: oldest_shown.id } }
+
+      it 'pages back by when messages were sent, not by when they were stored' do
+        older = create(:message, account: account, inbox: inbox, conversation: conversation, created_at: 2.days.ago)
+
+        expect(message_finder.perform.map(&:id)).to eq([older.id])
+      end
+    end
   end
 end

@@ -41,6 +41,21 @@ RSpec.describe 'Evolution groups API', type: :request do
     expect(response.parsed_body['groups'].first['conversation_id']).to eq(conversation.display_id)
   end
 
+  it 'tells who owns each group and how it was labelled' do
+    contact = create(:contact, account: account)
+    contact_inbox = create(:contact_inbox, contact: contact, inbox: finance_channel.inbox, source_id: '120363000000000001@g.us')
+    conversation = create(:conversation, account: account, inbox: finance_channel.inbox, contact: contact,
+                                         contact_inbox: contact_inbox, assignee: finance)
+    conversation.update_labels(['cobranca'])
+
+    get groups_url, headers: finance.create_new_auth_token, as: :json
+
+    group = response.parsed_body['groups'].first
+    expect(group['assignee']).to eq('id' => finance.id, 'name' => finance.available_name)
+    expect(group['labels']).to eq(['cobranca'])
+    expect(group['inbox_id']).to eq(finance_channel.inbox.id)
+  end
+
   it 'keeps the actions that change a group with administrators' do
     post "#{groups_url}/update_group", params: { instance: 'contas_a_receber', jid: '120363000000000001@g.us', subject: 'x' },
                                        headers: finance.create_new_auth_token, as: :json

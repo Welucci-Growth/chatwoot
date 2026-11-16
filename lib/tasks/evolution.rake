@@ -12,8 +12,10 @@ namespace :evolution do
       account: server.account, provider: 'evolution', phone_number: "+#{remote[:number]}",
       provider_config: server.provider_config.slice('base_url', 'api_key').merge('instance' => args[:instance], 'mirror_paused' => true)
     )
-    # Nobody answers from a mirror, so there is nothing to hand out.
-    inbox = server.account.inboxes.create!(name: args[:name], channel: channel, enable_auto_assignment: false)
+    # Nobody answers from a mirror, so there is nothing to hand out; and a chat stays one thread
+    # even after someone resolves it, so a group's history never splits.
+    inbox = server.account.inboxes.create!(name: args[:name], channel: channel, enable_auto_assignment: false,
+                                           lock_to_single_conversation: true)
     days = Integer(args[:days] || 30)
     Whatsapp::Evolution::HistoryImportJob.perform_later(inbox.id, days)
     puts "Inbox #{inbox.id} '#{inbox.name}': espelho pausado, importando #{days} dias de historico"

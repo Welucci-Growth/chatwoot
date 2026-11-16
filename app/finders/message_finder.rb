@@ -32,16 +32,26 @@ class MessageFinder
     end
   end
 
+  # Pages walk (created_at, id) rather than id alone: messages imported from history get ids
+  # newer than the conversation they belong to, and paging by id would skip them.
   def messages_after(after_id)
-    messages.reorder('created_at asc').where('id > ?', after_id).limit(100)
+    messages.reorder(created_at: :asc, id: :asc).where('(messages.created_at, messages.id) > (?, ?)', *cursor(after_id)).limit(100)
   end
 
   def messages_before(before_id)
-    messages.reorder('created_at desc').where('id < ?', before_id).limit(20).reverse
+    messages.reorder(created_at: :desc, id: :desc).where('(messages.created_at, messages.id) < (?, ?)', *cursor(before_id)).limit(20).reverse
   end
 
   def messages_between(after_id, before_id)
-    messages.reorder('created_at asc').where('id >= ? AND id < ?', after_id, before_id).limit(1000)
+    messages.reorder(created_at: :asc, id: :asc)
+            .where('(messages.created_at, messages.id) >= (?, ?)', *cursor(after_id))
+            .where('(messages.created_at, messages.id) < (?, ?)', *cursor(before_id))
+            .limit(1000)
+  end
+
+  # A cursor whose message was deleted still pages from its id, the old behaviour.
+  def cursor(message_id)
+    @conversation.messages.where(id: message_id).pick(:created_at, :id) || [Time.zone.at(0), message_id]
   end
 
   def messages_latest
