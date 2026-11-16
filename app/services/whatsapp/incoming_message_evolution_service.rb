@@ -52,7 +52,7 @@ class Whatsapp::IncomingMessageEvolutionService < Whatsapp::IncomingMessageBaseS
     attrs.merge(
       group_participant: {
         phone_number: participant_phone,
-        name: data[:pushName]
+        name: push_name
       }.compact_blank
     )
   end
@@ -73,7 +73,7 @@ class Whatsapp::IncomingMessageEvolutionService < Whatsapp::IncomingMessageBaseS
   def contact_payload
     return { profile: { name: group_name }, user_id: remote_jid } if group?
 
-    { profile: { name: data[:pushName] }, wa_id: phone_number }
+    { profile: { name: push_name }, wa_id: phone_number }
   end
 
   def message_payload
@@ -86,11 +86,13 @@ class Whatsapp::IncomingMessageEvolutionService < Whatsapp::IncomingMessageBaseS
 
   # Group JIDs are longer than a phone number, so they travel as a bare source id
   # instead of a phone identifier. The base service handles a contact with no number.
+  # A chat addressed by LID carries the LID as a second id, so the messages that arrive without
+  # the real number still land on the contact that has it.
   def identifier_fields
     if group?
       from_me? ? { to_user_id: remote_jid } : { from_user_id: remote_jid }
     else
-      from_me? ? { to: phone_number } : { from: phone_number }
+      from_me? ? { to: phone_number, to_user_id: lid }.compact : { from: phone_number, from_user_id: lid }.compact
     end
   end
 
@@ -147,7 +149,14 @@ class Whatsapp::IncomingMessageEvolutionService < Whatsapp::IncomingMessageBaseS
   def decorate(content)
     return content unless group? && !from_me? && content.present?
 
-    "#{data[:pushName]}: #{content}"
+    sender = push_name || (participant_phone && "+#{participant_phone}") || data[:pushName]
+    "#{sender}: #{content}"
+  end
+
+  # Evolution fills pushName with the bare number or LID when WhatsApp sent no name.
+  def push_name
+    name = data[:pushName].to_s.strip
+    name unless name.blank? || name.match?(/\A\+?\d+\z/)
   end
 
   def group_name
@@ -183,10 +192,32 @@ class Whatsapp::IncomingMessageEvolutionService < Whatsapp::IncomingMessageBaseS
   end
 
   # WhatsApp addresses many one-to-one chats by an opaque LID; the phone-based JID travels
-  # alongside it, and only that one makes a contact Chatwoot can recognise.
+  # alongside it only sometimes, and only that one makes a contact Chatwoot can recognise.
   def remote_jid
     jid = message_key[:remoteJid].to_s
     jid.end_with?('@lid') && message_key[:remoteJidAlt].present? ? message_key[:remoteJidAlt].to_s : jid
+  end
+
+  def lid
+    jid = message_key[:remoteJid].to_s
+    jid.delete_suffix('@lid') if jid.end_with?('@lid')
+  end
+
+  def set_contact
+    return super if group? || lid.blank?
+
+    Whatsapp::Evolution::LidContactService.new(inbox: inbox, lid: lid).link(phone_number) if phone_number.present?
+    super
+    name_hidden_contact
+  end
+
+  # The base service only renames contacts still named after their phone number.
+  def name_hidden_contact
+    lid_contacts = Whatsapp::Evolution::LidContactService.new(inbox: inbox, lid: lid)
+    return unless lid_contacts.lid_contact == @contact && lid_contacts.placeholder_name?
+
+    name = push_name || (phone_number && "+#{phone_number}")
+    name ? @contact.update!(name: name) : lid_contacts.hide
   end
 
   def group?
@@ -198,7 +229,7 @@ class Whatsapp::IncomingMessageEvolutionService < Whatsapp::IncomingMessageBaseS
   end
 
   def phone_number
-    remote_jid.split('@').first
+    remote_jid.split('@').first unless remote_jid.end_with?('@lid')
   end
 
   def data

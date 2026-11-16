@@ -387,6 +387,7 @@ en:
   contacts:
     online:
       delete: '%{contact_name} is Online, please try again later'
+    whatsapp_hidden_number: 'Number hidden by WhatsApp · %{suffix}'
   integration_apps:
     # Note: webhooks and dashboard_apps don't need short_description as they use different modal components
     dashboard_apps:

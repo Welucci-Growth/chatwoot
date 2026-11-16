@@ -20,4 +20,11 @@ namespace :evolution do
     Whatsapp::Evolution::HistoryImportJob.perform_later(inbox.id, days)
     puts "Inbox #{inbox.id} '#{inbox.name}': espelho pausado, importando #{days} dias de historico"
   end
+
+  # Contacts mirrored before the LID handling carry the LID as name and fake phone number.
+  desc 'Give LID contacts their real number, or name them as hidden: rake "evolution:resolve_lids[9]"'
+  task :resolve_lids, %i[inbox_id] => :environment do |_task, args|
+    inbox = Inbox.find(args[:inbox_id])
+    puts "Inbox #{inbox.id} '#{inbox.name}': #{Whatsapp::Evolution::LidResolutionService.new(inbox: inbox).perform.to_h}"
+  end
 end

@@ -67,4 +67,24 @@ describe Whatsapp::Evolution::HistoryImportService do
 
     expect(a_request(:post, %r{evo\.test/message/})).not_to have_been_made
   end
+
+  it 'files a whole LID chat under the number revealed on any of its messages' do
+    lid = '252206180000000@lid'
+    stub_request(:post, 'https://evo.test/chat/findChats/contas_a_receber')
+      .to_return(status: 200, headers: json, body: [{ remoteJid: lid, updatedAt: (now - 1.day).iso8601 }].to_json)
+    lid_records = [
+      { 'key' => { 'id' => 'LID-HIST-2', 'remoteJid' => lid, 'fromMe' => false, 'remoteJidAlt' => '5511988887777@s.whatsapp.net' },
+        'pushName' => '252206180000000',
+        'messageType' => 'conversation', 'message' => { 'conversation' => 'pago' }, 'messageTimestamp' => (now - 1.day).to_i },
+      { 'key' => { 'id' => 'LID-HIST-1', 'remoteJid' => lid, 'fromMe' => false }, 'pushName' => 'Fornecedor',
+        'messageType' => 'conversation', 'message' => { 'conversation' => 'segue nota' },
+        'messageTimestamp' => (now - 2.days).to_i }
+    ]
+    stub_request(:post, 'https://evo.test/chat/findMessages/contas_a_receber')
+      .to_return(status: 200, headers: json, body: { messages: { total: 2, pages: 1, currentPage: 1, records: lid_records } }.to_json)
+
+    service.perform
+
+    expect(inbox.messages.map(&:sender).uniq.map(&:phone_number)).to eq(['+5511988887777'])
+  end
 end
