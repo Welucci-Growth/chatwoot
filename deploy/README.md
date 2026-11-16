@@ -104,3 +104,8 @@ cd /root/chatwoot && docker compose exec -T rails bundle exec rails runner "What
 ```
 Pode rodar com o espelho ligado: a paginação das mensagens segue a data de envio, então o histórico antigo aparece ao rolar mesmo tendo sido importado depois.
 
+**Contatos com número oculto (LID):** o WhatsApp esconde o telefone de muitos contatos atrás de um ID interno e só às vezes manda o número real. O espelho guarda os dois: assim que o número aparece, o contato passa a mostrar o telefone (ou é unido ao contato que já tem esse número); enquanto não aparece, ele se chama "Número oculto pelo WhatsApp · 1234". Para corrigir contatos espelhados antes disso (rodar por inbox, não dispara eventos):
+```bash
+cd /root/chatwoot && docker compose exec -T rails bundle exec rake "evolution:resolve_lids[<inbox_id>]" </dev/null
+```
+
