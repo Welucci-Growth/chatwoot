@@ -17,6 +17,15 @@ describe Whatsapp::IncomingMessageEvolutionService do
     expect(channel.inbox.messages.sole.sender.phone_number).to eq('+5511988887777')
   end
 
+  it 'mirrors a shared contact card' do
+    card = params.deep_merge(data: { messageType: 'contactMessage', message: { contactMessage: {
+                               displayName: 'Hellen', vcard: "BEGIN:VCARD\nFN:Hellen\nTEL;waid=5511932396421:+55 11 93239-6421\nEND:VCARD"
+                             } } })
+    described_class.new(inbox: channel.inbox, params: card).perform
+
+    expect(channel.inbox.messages.sole.attachments.sole.fallback_title).to eq('+5511932396421')
+  end
+
   context 'when WhatsApp hides the number behind the LID' do
     let(:inbox) { channel.inbox }
     let(:lid_only) do

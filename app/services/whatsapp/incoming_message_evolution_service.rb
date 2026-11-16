@@ -26,7 +26,7 @@ class Whatsapp::IncomingMessageEvolutionService < Whatsapp::IncomingMessageBaseS
   # Events we cannot render (poll updates, protocol receipts) translate to an empty hash,
   # which makes the base service's perform a no-op.
   def processed_params
-    @processed_params ||= mapped_type.blank? ? {} : translated_payload
+    @processed_params ||= mapped_type.blank? ? {} : translated_payload.with_indifferent_access
   end
 
   def download_attachment_file(attachment_payload)
